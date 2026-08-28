@@ -1,0 +1,94 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User account profile and customized buying intelligence preferences",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The unique Firebase Authentication UID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the member"
+        },
+        "email": {
+          "type": "string",
+          "description": "Primary verified email address"
+        },
+        "preferences": {
+          "type": "object",
+          "description": "Preferences like favorite brand, category, and buying priorities"
+        }
+      },
+      "required": ["uid", "name", "email"]
+    },
+    "Wishlist": {
+      "title": "Wishlist",
+      "description": "A categorized folder for storing and organizing favorite product recommendations",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique folder identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner UID linking to user profile"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the folder"
+        },
+        "description": {
+          "type": "string",
+          "description": "Brief notes regarding comparison items in this wishlist"
+        },
+        "productIds": {
+          "type": "array",
+          "description": "List of absolute product IDs contained in this folder"
+        }
+      },
+      "required": ["id", "userId", "name", "productIds"]
+    },
+    "CompareRecord": {
+      "title": "CompareRecord",
+      "description": "An entry documenting a technical product comparison audit performed by the user",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Comparison audit log ID"
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of user who conducted comparison audit"
+        },
+        "names": {
+          "type": "array",
+          "description": "Full titles of compared tech specifications"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Formatted ISO date-time of comparison"
+        }
+      },
+      "required": ["id", "userId", "names", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of platform user records and personalized criteria weights"
+    },
+    "/wishlists/{wishlistId}": {
+      "schema": "Wishlist",
+      "description": "Folders tracking selected consumer models and buying guides bookmarks"
+    },
+    "/compareHistory/{recordId}": {
+      "schema": "CompareRecord",
+      "description": "Saved matrix comparisons containing product model identifiers"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "WiseFind",
+  "description": "WiseFind is an AI-powered Buying Intelligence Platform that helps users discover, compare, and choose products through natural language analysis and comparison.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

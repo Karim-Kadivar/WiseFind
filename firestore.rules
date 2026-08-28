@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Safety Net (Default-Deny Catch-All)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- REUSABLE SECURITY PRIMITIVES ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- VALIDATION BLUEPRINTS ---
+    function isValidUser(data) {
+      return data.uid is string && 
+             data.uid.size() <= 128 && 
+             data.uid == request.auth.uid &&
+             data.name is string && 
+             data.name.size() > 0 && 
+             data.name.size() <= 100 && 
+             data.email is string && 
+             data.email.size() <= 200;
+    }
+
+    function isValidWishlist(data) {
+      return data.id is string && 
+             data.id.size() <= 128 && 
+             data.userId is string && 
+             data.userId == request.auth.uid && 
+             data.name is string && 
+             data.name.size() > 0 && 
+             data.name.size() <= 100 && 
+             data.productIds is list && 
+             data.productIds.size() <= 50;
+    }
+
+    function isValidCompareRecord(data) {
+      return data.id is string && 
+             data.id.size() <= 128 && 
+             data.userId is string && 
+             data.userId == request.auth.uid && 
+             data.names is list && 
+             data.names.size() <= 10 && 
+             data.timestamp is string && 
+             data.timestamp.size() <= 100;
+    }
+
+    // --- COLLECTION RULE MATCHERS ---
+
+    // USERS COLLECTION
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isValidUser(incoming()) && isOwner(userId) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'preferences'])
+      );
+      allow delete: if false; // Account deletion not allowed from client
+    }
+
+    // WISHLISTS COLLECTION
+    match /wishlists/{wishlistId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidWishlist(incoming()) && isValidId(wishlistId);
+      allow update: if isValidWishlist(incoming()) && isSignedIn() && existing().userId == request.auth.uid && (
+        // Action: Manage productIds or folder names
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'productIds'])
+      );
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // COMPARE HISTORY COLLECTION
+    match /compareHistory/{recordId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidCompareRecord(incoming()) && isValidId(recordId);
+      allow update: if false; // Comparisons are audit trails and should remain immutable
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}

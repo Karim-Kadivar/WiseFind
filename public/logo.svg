@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Solid Black Background with Rounded Corners matching the uploaded icon -->
+  <rect width="100" height="100" rx="20" fill="#000000"/>
+  
+  <defs>
+    <!-- Left Glyph Gradient: Electric Sapphire Blue to Vibrant Violet Purple -->
+    <linearGradient id="fw-blue-purple" x1="28" y1="16" x2="58" y2="84" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#3B82F6"/>
+      <stop offset="45%" stopColor="#6366F1"/>
+      <stop offset="85%" stopColor="#8B5CF6"/>
+      <stop offset="100%" stopColor="#A855F7"/>
+    </linearGradient>
+
+    <!-- Right Glyph Gradient / Solid Warm Golden Amber -->
+    <linearGradient id="fw-gold-amber" x1="60" y1="16" x2="72" y2="84" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#FCD34D"/>
+      <stop offset="50%" stopColor="#FBBF24"/>
+      <stop offset="100%" stopColor="#F59E0B"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Left Glyph: Stylized "F" with top bar, middle bar, horizontal slit gap, and bottom chevron wing -->
+  <!-- Top part of F: Top bar + Middle bar + Stem -->
+  <path
+    d="M 29 17
+       H 57
+       C 58.5 17, 59 17.5, 59 19
+       V 31
+       C 59 32.5, 58.5 33, 57 33
+       H 39
+       V 42
+       H 56
+       C 57.5 42, 58 42.5, 58 44
+       V 53
+       C 58 54.5, 57.5 55, 56 55
+       H 39
+       V 56
+       C 39 57.5, 38.5 58, 37 58
+       H 29
+       C 27.5 58, 27 57.5, 27 56
+       V 19
+       C 27 17.5, 27.5 17, 29 17
+       Z"
+    fill="url(#fw-blue-purple)"
+  />
+
+  <!-- Bottom part of F: Lower stem + upward 45-degree chevron ribbon tail -->
+  <path
+    d="M 29 62
+       H 38
+       C 39.5 62, 40 62.5, 40 64
+       V 70.5
+       L 51 60.5
+       C 52.5 59.5, 54 60, 54.5 61.5
+       V 73
+       C 54.5 74.5, 53.5 75.5, 52 76.5
+       L 39.5 84.5
+       C 38 85.5, 36.5 85.5, 35 84.5
+       L 28.5 80.5
+       C 27.5 80, 27 79, 27 77.5
+       V 64
+       C 27 62.5, 27.5 62, 29 62
+       Z"
+    fill="url(#fw-blue-purple)"
+  />
+
+  <!-- Right Glyph: Stylized Golden Amber vertical wing with rounded top-right and angled notch tail -->
+  <path
+    d="M 61 17
+       H 70
+       C 71.5 17, 72.5 17.8, 72.5 19.5
+       V 76.5
+       C 72.5 78.5, 71.5 79.5, 70 80.5
+       L 60.5 84.5
+       C 59 85.5, 57.8 84.5, 57.2 83.2
+       L 49.5 75.5
+       C 48.2 74.2, 48 73.2, 49.2 71.8
+       L 61 54
+       Z"
+    fill="url(#fw-gold-amber)"
+  />
+</svg>

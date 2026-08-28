@@ -628,56 +628,78 @@ export function AppContent() {
             {/* "How It Works" section */}
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 border-b border-slate-200/80 dark:border-slate-800" id="how-it-works">
               <div className="text-center max-w-2xl mx-auto mb-14 sm:mb-16">
-                <div className="inline-flex items-center gap-1.5 text-[10px] font-black text-[#4F46E5] dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/80 dark:border-indigo-800/80 px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-3">
-                  <Sparkles className="h-3 w-3 text-amber-500" />
+                <div className="inline-flex items-center gap-1.5 text-xs font-black text-[#4F46E5] dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/80 dark:border-indigo-800/80 px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-3">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
                   <span>Platform Architecture</span>
                 </div>
                 <h3 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">Decide with Absolute Confidence</h3>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2.5 font-medium max-w-lg mx-auto">An objective three-tier telemetry pipeline that values benchmark specifications above sales margins.</p>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2.5 font-medium max-w-lg mx-auto">An objective three-tier telemetry pipeline that values verified benchmark specifications above sales margins.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
                 {/* Visual horizontal separator lines for desktop */}
-                <div className="hidden md:block absolute top-[48px] left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-indigo-500/20 via-purple-500/30 to-amber-500/20 -z-10" />
+                <div className="hidden md:block absolute top-[48px] left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-indigo-500/30 via-purple-500/40 to-amber-500/30 -z-10" />
 
                 {[
                   {
                     step: "01",
                     title: "Natural Query Input",
+                    subtitle: "Intent Parsing & Price Constraints",
                     description: "Describe your custom budget, workflows, brand constraints, and priority features in plain English, technical specs, or Indian Rupees (₹).",
-                    badgeColor: "bg-indigo-50 dark:bg-indigo-950/80 text-[#4F46E5] dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
-                    hoverGlow: "hover:border-[#4F46E5]/40 hover:shadow-indigo-500/10"
+                    badgeColor: "bg-indigo-50 dark:bg-indigo-950/90 text-[#4F46E5] dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
+                    hoverGlow: "hover:border-[#4F46E5] hover:shadow-indigo-500/10",
+                    featureTag: "Real-time Natural Language"
                   },
                   {
                     step: "02",
                     title: "Grounded Specs Harvest",
+                    subtitle: "Multi-Store & Benchmark Ingestion",
                     description: "Our system queries search layers in real-time, matching technical manuals, pricing tables, benchmark scores, and independent consumer sentiment.",
-                    badgeColor: "bg-purple-50 dark:bg-purple-950/80 text-purple-600 dark:text-purple-300 border-purple-200 dark:border-purple-800",
-                    hoverGlow: "hover:border-purple-400 hover:shadow-purple-500/10"
+                    badgeColor: "bg-purple-50 dark:bg-purple-950/90 text-purple-600 dark:text-purple-300 border-purple-200 dark:border-purple-800",
+                    hoverGlow: "hover:border-purple-500 hover:shadow-purple-500/10",
+                    featureTag: "Live INR (₹) Grounding"
                   },
                   {
                     step: "03",
                     title: "Unbiased Score Matrix",
+                    subtitle: "0-100 Neural Match Calculation",
                     description: "Receive complete structural match quotients, unbiased pros/cons, key specifications, and live store availability without manufacturer bias.",
-                    badgeColor: "bg-amber-50 dark:bg-amber-950/80 text-amber-600 dark:text-amber-300 border-amber-200 dark:border-amber-800",
-                    hoverGlow: "hover:border-amber-400 hover:shadow-amber-500/10"
+                    badgeColor: "bg-amber-50 dark:bg-amber-950/90 text-amber-600 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+                    hoverGlow: "hover:border-amber-500 hover:shadow-amber-500/10",
+                    featureTag: "Zero Sponsored Bias"
                   }
                 ].map((item, idx) => (
                   <motion.div 
                     key={idx}
-                    whileHover={{ y: -4, scale: 1.01 }}
+                    whileHover={{ y: -6, scale: 1.015 }}
                     transition={{ type: "spring", stiffness: 300, damping: 22 }}
-                    className={`bg-white dark:bg-[#12182B] border border-slate-200/90 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-6 sm:p-7 shadow-xs ${item.hoverGlow} transition-all duration-200 relative overflow-hidden flex flex-col justify-between`}
+                    className={`bg-white dark:bg-[#12182B] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xs ${item.hoverGlow} transition-all duration-300 relative overflow-hidden flex flex-col justify-between group`}
                   >
                     <div className="space-y-3.5">
                       <div className="flex justify-between items-center">
-                        <span className={`h-10 w-10 rounded-xl border flex items-center justify-center font-black text-xs ${item.badgeColor}`}>
+                        <span className={`h-11 w-11 rounded-2xl border-2 flex items-center justify-center font-black text-sm shadow-xs ${item.badgeColor}`}>
                           {item.step}
                         </span>
-                        <span className="text-[10px] font-black tracking-widest text-slate-400 dark:text-slate-500 uppercase">TIER {idx + 1}</span>
+                        <span className="text-[9px] font-black tracking-widest text-[#4F46E5] dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/80 px-2 py-0.5 rounded-md uppercase">
+                          {item.featureTag}
+                        </span>
                       </div>
-                      <h4 className="font-black text-slate-900 dark:text-white text-base">{item.title}</h4>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">{item.description}</p>
+                      <div>
+                        <h4 className="font-black text-slate-900 dark:text-white text-base group-hover:text-[#4F46E5] dark:group-hover:text-indigo-400 transition-colors">
+                          {item.title}
+                        </h4>
+                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mt-0.5">
+                          {item.subtitle}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                        {item.description}
+                      </p>
+                    </div>
+
+                    <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-black text-slate-400 group-hover:text-[#4F46E5] dark:group-hover:text-indigo-300 uppercase tracking-wider">
+                      <span>TIER {idx + 1} PIPELINE</span>
+                      <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
                     </div>
                   </motion.div>
                 ))}
@@ -688,7 +710,7 @@ export function AppContent() {
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 border-b border-slate-200/80 dark:border-slate-800" id="category-showcase">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-4">
                 <div>
-                  <span className="text-[10px] font-black text-[#4F46E5] dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/80 dark:border-indigo-800/80 px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-2.5 inline-block">
+                  <span className="text-xs font-black text-[#4F46E5] dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/80 dark:border-indigo-800/80 px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-2.5 inline-block">
                     Segment Directories
                   </span>
                   <h3 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">Browse Core Directories</h3>
@@ -701,45 +723,50 @@ export function AppContent() {
                     setPreselectedCategory('All');
                     setActiveTab('browse');
                   }}
-                  className="text-xs font-black text-[#4F46E5] dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 px-4 py-2.5 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs hover:bg-[#4F46E5] hover:text-white hover:border-[#4F46E5] transition-all duration-200"
+                  className="text-xs font-black text-white bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] hover:opacity-95 px-5 py-3 rounded-2xl flex items-center gap-2 cursor-pointer shadow-md shadow-indigo-500/20 uppercase tracking-wider transition-all"
                 >
                   <span>Explore Full Catalog</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </motion.button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                 {[
-                  { name: 'Smartphones', icon: '📱', desc: 'Titanium, LTPO, Zoom Cameras', badge: "Hot" },
-                  { name: 'Laptops', icon: '💻', desc: 'ARM, OLED, Intel Core Ultra', badge: "Popular" },
-                  { name: 'Tablets', icon: '✏️', desc: 'Liquid Retina, Stylus support' },
-                  { name: 'Smartwatches', icon: '⌚', desc: 'ECG, Always-on AMOLED' },
-                  { name: 'Headphones', icon: '🎧', desc: 'ANC, High-fidelity LDAC' },
-                  { name: 'Earbuds', icon: '🎵', desc: 'Adaptive ANC, Spatial Audio', badge: "New" },
-                  { name: 'Handheld Consoles', icon: '🎮', desc: 'SteamOS, OLED, 120Hz' },
-                  { name: 'Cameras', icon: '📷', desc: 'Full Frame, 4K120 Creators' },
-                  { name: 'Smart Projectors', icon: '📽️', desc: 'Dolby Vision, Laser 4K' },
-                  { name: 'Mechanical Keyboards', icon: '⌨️', desc: 'Hot-swappable, CNC aluminum', badge: "Elite" },
+                  { name: 'Smartphones', icon: '📱', desc: 'Titanium, LTPO, Zoom OIS', badge: "Hot", count: "12 Models" },
+                  { name: 'Laptops', icon: '💻', desc: 'ARM, OLED, Intel Core Ultra', badge: "Popular", count: "10 Models" },
+                  { name: 'Tablets', icon: '✏️', desc: 'Liquid Retina, Stylus pen', count: "6 Models" },
+                  { name: 'Smartwatches', icon: '⌚', desc: 'ECG, Always-on AMOLED', count: "7 Models" },
+                  { name: 'Headphones', icon: '🎧', desc: 'ANC, High-fidelity LDAC', count: "8 Models" },
+                  { name: 'Earbuds', icon: '🎵', desc: 'Adaptive ANC, Spatial Audio', badge: "New", count: "8 Models" },
+                  { name: 'Handheld Consoles', icon: '🎮', desc: 'SteamOS, OLED, 120Hz', count: "4 Models" },
+                  { name: 'Cameras', icon: '📷', desc: 'Full Frame, 4K120 Creators', count: "5 Models" },
+                  { name: 'Smart Projectors', icon: '📽️', desc: 'Dolby Vision, Laser 4K', count: "4 Models" },
+                  { name: 'Mechanical Keyboards', icon: '⌨️', desc: 'Hot-swappable, CNC aluminum', badge: "Elite", count: "6 Models" },
                 ].map((cat, idx) => (
                   <motion.div
                     key={cat.name}
-                    whileHover={{ y: -3, scale: 1.02 }}
+                    whileHover={{ y: -5, scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       setPreselectedCategory(cat.name);
                       setActiveTab('browse');
                     }}
-                    className="bg-white dark:bg-[#12182B] border border-slate-200/90 dark:border-slate-800 hover:border-[#4F46E5] dark:hover:border-indigo-500 rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
+                    className="bg-white dark:bg-[#12182B] border border-slate-200/90 dark:border-slate-800 hover:border-[#4F46E5] dark:hover:border-indigo-500 rounded-3xl p-5 shadow-xs hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
                   >
                     {cat.badge && (
-                      <span className="absolute top-2.5 right-2.5 text-[8px] font-black uppercase tracking-wider text-[#4F46E5] dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200/60 dark:border-indigo-800 px-1.5 py-0.5 rounded-md">
+                      <span className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-wider text-[#4F46E5] dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200/60 dark:border-indigo-800 px-2 py-0.5 rounded-lg shadow-xs">
                         {cat.badge}
                       </span>
                     )}
                     <div>
-                      <span className="text-2xl sm:text-3xl block mb-2 group-hover:scale-110 transition-transform duration-200">{cat.icon}</span>
-                      <h4 className="font-black text-slate-800 dark:text-slate-100 text-xs sm:text-sm group-hover:text-[#4F46E5] dark:group-hover:text-indigo-400 transition-colors">{cat.name}</h4>
+                      <span className="text-3xl sm:text-4xl block mb-3 group-hover:scale-115 transition-transform duration-300">{cat.icon}</span>
+                      <h4 className="font-black text-slate-800 dark:text-slate-100 text-sm group-hover:text-[#4F46E5] dark:group-hover:text-indigo-400 transition-colors">{cat.name}</h4>
                       <p className="text-[10px] text-slate-400 font-medium tracking-tight mt-1 line-clamp-1">{cat.desc}</p>
+                    </div>
+                    
+                    <div className="mt-4 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px] font-extrabold text-slate-400 group-hover:text-[#4F46E5] dark:group-hover:text-indigo-300">
+                      <span>{cat.count}</span>
+                      <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
                     </div>
                   </motion.div>
                 ))}
@@ -755,23 +782,23 @@ export function AppContent() {
             />
 
             {/* WiseBot preview prompt chip and testimonials */}
-            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 border-b border-slate-200/50 dark:border-slate-800" id="testimonials">
+            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 border-b border-slate-200/80 dark:border-slate-800" id="testimonials">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-center">
                 <div className="space-y-5">
-                  <span className="text-[10px] font-black text-[#6A73E4] dark:text-cyan-400 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100/50 dark:border-indigo-800 px-3 py-1 rounded-full uppercase tracking-widest">
+                  <span className="text-xs font-black text-[#4F46E5] dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200/80 dark:border-indigo-800 px-3.5 py-1.5 rounded-full uppercase tracking-widest">
                     WiseBot AI Co-Pilot
                   </span>
-                  <h3 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none">Your Unbiased Shopping Companion</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
+                  <h3 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">Your Unbiased Shopping Companion</h3>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
                     WiseBot is deeply integrated into specifications databases. It contrasts multiple options side-by-side, decodes technical jargon instantly, and protects you from buying over-hyped hardware.
                   </p>
                   <motion.button
                     whileHover={{ scale: 1.03, y: -2 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => setActiveTab('wisebot')}
-                    className="bg-slate-900 dark:bg-[#7C3AED] hover:bg-black dark:hover:bg-[#6D28D9] text-white font-black text-xs uppercase tracking-wider px-6 py-3.5 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2 cursor-pointer"
+                    className="bg-slate-900 dark:bg-[#7C3AED] hover:bg-black dark:hover:bg-[#6D28D9] text-white font-black text-xs uppercase tracking-wider px-7 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2.5 cursor-pointer"
                   >
-                    <Bot className="h-4 w-4 text-accent animate-pulse" />
+                    <Bot className="h-4 w-4 text-amber-300 animate-pulse" />
                     <span>Initiate Chat Session</span>
                   </motion.button>
                 </div>
@@ -780,21 +807,21 @@ export function AppContent() {
                   {TESTIMONIALS.map((t, index) => (
                     <motion.div 
                       key={index} 
-                      whileHover={{ y: -5 }}
-                      className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-6 hover:shadow-md transition-all duration-300"
+                      whileHover={{ y: -6 }}
+                      className="bg-white dark:bg-[#12182B] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-6 hover:shadow-xl hover:border-indigo-200 dark:hover:border-indigo-800 transition-all duration-300"
                     >
                       <div className="space-y-3">
                         <div className="flex gap-1">
                           {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
+                            <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                           ))}
                         </div>
                         <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-semibold">
                           "{t.text}"
                         </p>
                       </div>
-                      <div className="flex items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-                        <img src={t.avatar} className="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex-shrink-0" alt={t.name} />
+                      <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                        <img src={t.avatar} className="h-9 w-9 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex-shrink-0" alt={t.name} />
                         <div className="min-w-0">
                           <h4 className="font-extrabold text-slate-800 dark:text-slate-200 text-xs truncate">{t.name}</h4>
                           <span className="text-[9px] text-slate-400 block font-bold uppercase tracking-wider truncate">{t.role}</span>

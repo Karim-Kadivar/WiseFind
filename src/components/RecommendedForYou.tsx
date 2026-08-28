@@ -1,7 +1,23 @@
 import React, { useMemo, useState } from 'react';
 import { Product } from '../types';
-import { Sparkles, Heart, Scale, ArrowRight, Star, History, Flame, CheckCircle, Tag, Eye } from 'lucide-react';
-import { motion } from 'motion/react';
+import { 
+  Sparkles, 
+  Heart, 
+  Scale, 
+  ArrowRight, 
+  Star, 
+  History, 
+  Flame, 
+  CheckCircle, 
+  Tag, 
+  Eye,
+  Zap,
+  TrendingUp,
+  Cpu,
+  ShieldCheck,
+  Percent
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { SafeProductImage } from './SafeProductImage';
 
 interface RecommendedForYouProps {
@@ -68,14 +84,14 @@ export default function RecommendedForYou({
         const isNameMatch = keywords.some(k => p.name.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(p.name.toLowerCase()));
 
         if (isCatMatch || isBrandMatch || isNameMatch) {
-          let reason = `Based on recent search for "${searchHistory[0]}"`;
+          let reason = `Matched search for "${searchHistory[0]}"`;
           let priority = p.aiScore || 80;
 
           if (isBrandMatch) {
-            reason = `Matches brand "${p.brand}" in your search history`;
+            reason = `Brand match for "${p.brand}" inquiry`;
             priority += 10;
           } else if (isCatMatch) {
-            reason = `Recommended for "${p.category}" category inquiry`;
+            reason = `Recommended in "${p.category}" category`;
             priority += 5;
           }
 
@@ -93,7 +109,7 @@ export default function RecommendedForYou({
         .forEach(p => {
           filtered.push({
             product: p,
-            reason: p.isEditorChoice ? "Editor's Unbiased Top Pick" : p.isTrending ? "Trending in Top Value Index" : "High Reliability Quotient",
+            reason: p.isEditorChoice ? "Editor's Unbiased Top Pick" : p.isTrending ? "Trending in Top Value Index" : "High Reliability Benchmark",
             priority: p.aiScore
           });
         });
@@ -129,12 +145,12 @@ export default function RecommendedForYou({
   }, [recommendedProducts]);
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 border-b border-slate-200/60 dark:border-slate-800 transition-colors duration-200" id="recommended-for-you-section">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 border-b border-slate-200/80 dark:border-slate-800 transition-colors duration-200" id="recommended-for-you-section">
       {/* Section Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/80 dark:border-indigo-800/80 text-[#4F46E5] dark:text-indigo-400 text-[10px] font-black uppercase tracking-wider mb-2.5">
-            <Sparkles className="h-3 w-3 text-amber-500 animate-pulse" />
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/80 dark:border-indigo-800/80 text-[#4F46E5] dark:text-indigo-400 text-xs font-black uppercase tracking-wider mb-2.5">
+            <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
             <span>Recommended For You</span>
           </div>
           <h2 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
@@ -151,16 +167,16 @@ export default function RecommendedForYou({
             whileHover={{ scale: 1.02, x: 2 }}
             whileTap={{ scale: 0.98 }}
             onClick={onExploreAll}
-            className="text-xs font-black text-white bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] hover:opacity-95 px-4 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer shadow-md shadow-indigo-500/20 uppercase tracking-wider transition-all shrink-0"
+            className="text-xs font-black text-white bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] hover:opacity-95 px-5 py-3 rounded-2xl flex items-center gap-2 cursor-pointer shadow-md shadow-indigo-500/20 uppercase tracking-wider transition-all shrink-0"
           >
             <span>Browse Full Catalog</span>
-            <ArrowRight className="h-3.5 w-3.5" />
+            <ArrowRight className="h-4 w-4" />
           </motion.button>
         )}
       </div>
 
       {/* History Indicators & Quick Filter Pills */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-8 pb-4 border-b border-slate-200/50 dark:border-slate-800/80">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-8 pb-4 border-b border-slate-200/60 dark:border-slate-800/80">
         {/* Category Filters */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mr-1 flex items-center gap-1">
@@ -171,10 +187,10 @@ export default function RecommendedForYou({
             <button
               key={cat}
               onClick={() => setSelectedFilterCategory(cat)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border ${
                 selectedFilterCategory === cat
                   ? 'bg-[#4F46E5] text-white border-[#4F46E5] shadow-md shadow-[#4F46E5]/25'
-                  : 'bg-white dark:bg-[#12182B] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                  : 'bg-white dark:bg-[#12182B] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700'
               }`}
             >
               {cat}
@@ -193,7 +209,7 @@ export default function RecommendedForYou({
               <button
                 key={idx}
                 onClick={() => onSearchQuery && onSearchQuery(q)}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-[#0E1322] hover:bg-slate-200 dark:hover:bg-[#18213A] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold truncate max-w-[140px] transition-colors cursor-pointer"
+                className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-[#0E1322] hover:bg-slate-200 dark:hover:bg-[#18213A] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold truncate max-w-[150px] transition-colors cursor-pointer"
                 title={`Re-run search: ${q}`}
               >
                 "{q}"
@@ -205,120 +221,133 @@ export default function RecommendedForYou({
 
       {/* Recommended Products Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {displayedItems.map(({ product, reason }) => {
-          const isFav = favorites.includes(product.id);
+        <AnimatePresence mode="popLayout">
+          {displayedItems.map(({ product, reason }) => {
+            const isFav = favorites.includes(product.id);
 
-          return (
-            <motion.div
-              key={product.id}
-              whileHover={{ y: -6 }}
-              transition={{ type: "spring", stiffness: 280, damping: 20 }}
-              className="bg-white dark:bg-[#0E1322] border border-slate-200 dark:border-slate-800 hover:border-[#4F46E5]/60 dark:hover:border-[#4F46E5]/60 rounded-3xl p-5 shadow-sm hover:shadow-xl hover:shadow-[#4F46E5]/5 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden"
-            >
-              {/* Top Meta: Recommendation Match Reason Badge */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#4F46E5]/10 dark:bg-[#4F46E5]/20 border border-[#4F46E5]/20 dark:border-[#4F46E5]/30 text-[#4F46E5] dark:text-[#818CF8] text-[9px] font-black uppercase tracking-wider truncate max-w-[170px]" title={reason}>
-                    <Sparkles className="h-2.5 w-2.5 flex-shrink-0 text-[#F59E0B]" />
-                    <span className="truncate">{reason}</span>
-                  </span>
+            // Extract quick key specs
+            const specEntries = Object.entries(product.specs || {}).slice(0, 2);
 
-                  {/* Bookmark Button */}
-                  <button
-                    onClick={() => onToggleFavorite(product)}
-                    className={`p-2 rounded-xl border transition-all cursor-pointer ${
-                      isFav 
-                        ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400' 
-                        : 'bg-slate-50 dark:bg-[#12182B] border-slate-200 dark:border-slate-800 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30'
-                    }`}
-                    title={isFav ? 'Remove from Bookmarks' : 'Bookmark Product'}
-                  >
-                    <Heart className={`h-3.5 w-3.5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
-                  </button>
-                </div>
+            return (
+              <motion.div
+                key={product.id}
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                whileHover={{ y: -6 }}
+                transition={{ type: "spring", stiffness: 280, damping: 20 }}
+                className="bg-white dark:bg-[#12182B] border border-slate-200/90 dark:border-slate-800 hover:border-[#4F46E5] dark:hover:border-indigo-500 rounded-3xl p-5 shadow-xs hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden"
+              >
+                {/* Top Meta: Recommendation Match Reason Badge & Heart */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-100 dark:border-indigo-800 text-[#4F46E5] dark:text-indigo-300 text-[9px] font-black uppercase tracking-wider truncate max-w-[175px]" title={reason}>
+                      <Sparkles className="h-2.5 w-2.5 flex-shrink-0 text-amber-500" />
+                      <span className="truncate">{reason}</span>
+                    </span>
 
-                {/* Product Image Stage */}
-                <div 
-                  onClick={() => onSelectProduct(product)}
-                  className="h-44 w-full bg-slate-50 dark:bg-[#12182B] rounded-2xl p-4 flex items-center justify-center relative overflow-hidden cursor-pointer border border-slate-100 dark:border-slate-800/80 group-hover:border-[#4F46E5]/30 transition-colors"
-                >
-                  <SafeProductImage
-                    src={product.image}
-                    alt={product.name}
-                    category={product.category}
-                    className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
-                  />
-                  
-                  {/* AI Score Badge overlay */}
-                  <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-[#090D16]/90 border border-[#4F46E5]/40 text-white text-[10px] font-black flex items-center gap-1 shadow-md">
-                    <span className="text-[#818CF8]">AI</span>
-                    <span>{product.aiScore}</span>
+                    {/* Bookmark Button */}
+                    <button
+                      onClick={() => onToggleFavorite(product)}
+                      className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                        isFav 
+                          ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 shadow-xs' 
+                          : 'bg-slate-50 dark:bg-[#1A223B] border-slate-200 dark:border-slate-800 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+                      }`}
+                      title={isFav ? 'Remove from Bookmarks' : 'Bookmark Product'}
+                    >
+                      <Heart className={`h-3.5 w-3.5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
+                    </button>
                   </div>
 
-                  {product.isEditorChoice && (
-                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-lg bg-emerald-500 text-white text-[9px] font-black uppercase tracking-wider shadow-md">
-                      Top Choice
+                  {/* Product Image Stage */}
+                  <div 
+                    onClick={() => onSelectProduct(product)}
+                    className="h-44 w-full bg-slate-50/80 dark:bg-[#0B0F19] rounded-2xl p-4 flex items-center justify-center relative overflow-hidden cursor-pointer border border-slate-100 dark:border-slate-800/80 group-hover:border-indigo-300 dark:group-hover:border-indigo-700 transition-colors"
+                  >
+                    <SafeProductImage
+                      src={product.image}
+                      alt={product.name}
+                      category={product.category}
+                      className="max-h-full max-w-full object-contain group-hover:scale-108 transition-transform duration-300"
+                    />
+                    
+                    {/* AI Score Badge overlay */}
+                    <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-xl bg-slate-900/90 dark:bg-black/90 backdrop-blur-md border border-indigo-500/40 text-white text-[10px] font-black flex items-center gap-1.5 shadow-md">
+                      <span className="text-indigo-400 font-bold">AI MATCH</span>
+                      <span className="text-amber-300 font-black">{product.aiScore}</span>
                     </div>
-                  )}
+
+                    {product.isEditorChoice && (
+                      <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-lg bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider shadow-md">
+                        Top Pick
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info details */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-wider">
+                      <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md font-extrabold">{product.brand}</span>
+                      <span className="flex items-center gap-1 text-amber-500 font-extrabold">
+                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                        <span>{product.rating}</span>
+                      </span>
+                    </div>
+
+                    <h3 
+                      onClick={() => onSelectProduct(product)}
+                      className="font-extrabold text-slate-900 dark:text-white text-sm leading-snug line-clamp-2 hover:text-[#4F46E5] dark:hover:text-indigo-400 cursor-pointer transition-colors"
+                      title={product.name}
+                    >
+                      {product.name}
+                    </h3>
+
+                    {/* Spec preview badges */}
+                    {specEntries.length > 0 && (
+                      <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                        {specEntries.map(([k, v]) => (
+                          <span key={k} className="text-[10px] bg-slate-100 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md font-semibold truncate max-w-[130px]">
+                            {v}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Info details */}
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                    <span>{product.brand}</span>
-                    <span className="flex items-center gap-1 text-amber-500">
-                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                      <span>{product.rating}</span>
+                {/* Bottom Price & Interaction Bar */}
+                <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
+                  <div>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">Best Live Price</span>
+                    <span className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+                      ₹{product.price.toLocaleString("en-IN")}
                     </span>
                   </div>
 
-                  <h3 
-                    onClick={() => onSelectProduct(product)}
-                    className="font-extrabold text-slate-900 dark:text-white text-sm leading-snug line-clamp-2 hover:text-[#4F46E5] dark:hover:text-[#818CF8] cursor-pointer transition-colors"
-                    title={product.name}
-                  >
-                    {product.name}
-                  </h3>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => onAddToCompare(product)}
+                      className="p-2.5 rounded-xl bg-slate-100 dark:bg-[#1A223B] hover:bg-indigo-50 dark:hover:bg-indigo-950/80 text-slate-600 dark:text-slate-300 hover:text-[#4F46E5] dark:hover:text-indigo-400 border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all cursor-pointer"
+                      title="Add to Comparison Matrix"
+                    >
+                      <Scale className="h-4 w-4" />
+                    </button>
 
-                  {/* Highlights / Pros */}
-                  {product.highlights && product.highlights.length > 0 && (
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
-                      {product.highlights[0]}
-                    </p>
-                  )}
+                    <button
+                      onClick={() => onSelectProduct(product)}
+                      className="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] hover:opacity-95 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-xs shadow-indigo-500/20"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      <span>Specs</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              {/* Bottom Price & Interaction Bar */}
-              <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
-                <div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">Best Price</span>
-                  <span className="text-base font-black text-slate-900 dark:text-white tracking-tight">
-                    ₹{product.price.toLocaleString("en-IN")}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => onAddToCompare(product)}
-                    className="p-2 rounded-xl bg-slate-100 dark:bg-[#12182B] hover:bg-[#4F46E5]/10 dark:hover:bg-[#4F46E5]/20 text-slate-600 dark:text-slate-300 hover:text-[#4F46E5] dark:hover:text-[#818CF8] border border-slate-200 dark:border-slate-800 hover:border-[#4F46E5]/40 transition-all cursor-pointer"
-                    title="Add to Comparison Matrix"
-                  >
-                    <Scale className="h-3.5 w-3.5" />
-                  </button>
-
-                  <button
-                    onClick={() => onSelectProduct(product)}
-                    className="px-3 py-2 rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] hover:opacity-90 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer shadow-sm shadow-[#4F46E5]/20"
-                  >
-                    <Eye className="h-3 w-3" />
-                    <span>Specs</span>
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
     </section>
   );

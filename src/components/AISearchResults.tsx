@@ -2,6 +2,7 @@ import React from 'react';
 import { RecommendationResult, Product } from '../types';
 import { CheckCircle2, AlertTriangle, ShieldCheck, HelpCircle, Heart, BarChart2, Plus, ArrowRight, Share2, Star } from 'lucide-react';
 import { motion } from 'motion/react';
+import { WiseBookmarkIcon } from './WiseBookmarkIcon';
 
 interface AISearchResultsProps {
   result: RecommendationResult;
@@ -202,7 +203,7 @@ export default function AISearchResults({ result, onSaveToFavorites, onAddToComp
                         onClick={() => onSaveToFavorites(rec.productName, rec.brand, rec.priceEstimate)}
                         className="flex items-center gap-1.5 text-xs text-[#111827] hover:text-white font-extrabold bg-white hover:bg-[#111827] px-3.5 py-2 rounded-xl border border-slate-200 hover:border-black transition-all duration-200 shadow-sm cursor-pointer"
                       >
-                        <Heart className="h-3.5 w-3.5" />
+                        <WiseBookmarkIcon size={14} active={false} />
                         <span>Bookmark Advice</span>
                       </button>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Product } from '../types';
 import { SafeProductImage } from './SafeProductImage';
 import { motion, AnimatePresence } from 'motion/react';
@@ -6,7 +6,9 @@ import {
   Trash2, Plus, Star, BarChart2, Check, CheckCircle2, 
   Scale, Cpu, Monitor, Battery, Camera, Shield, Award, 
   Sparkles, Zap, ArrowDown, HelpCircle, RefreshCw, Eye, TrendingUp, Info,
-  DollarSign, ArrowUpRight, ArrowDownRight, Activity, Percent
+  DollarSign, ArrowUpRight, ArrowDownRight, Activity, Percent,
+  Copy, CheckCheck, Search, Share2, Printer, Crown, SlidersHorizontal,
+  Layers, ChevronDown, ChevronUp, X
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -43,6 +45,10 @@ export default function ProductComparer({
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('All');
   const [activeChartTab, setActiveChartTab] = useState<'summary' | 'bar' | 'radar' | 'bang'>('summary');
   const [showAnalytics, setShowAnalytics] = useState<boolean>(true);
+  const [highlightDiffOnly, setHighlightDiffOnly] = useState<boolean>(false);
+  const [tableSearchQuery, setTableSearchQuery] = useState<string>('');
+  const [copiedComparison, setCopiedComparison] = useState<boolean>(false);
+  const [showPersonaGuide, setShowPersonaGuide] = useState<boolean>(true);
 
   // Extract all unique spec keys from compared products
   const allSpecKeys = Array.from(
@@ -186,6 +192,98 @@ export default function ProductComparer({
     if (p.category === 'Headphones') return 95;
     return 80;
   };
+
+  // Winner Highlights Map
+  const priceWinnerId = useMemo(() => {
+    if (compareList.length < 2) return null;
+    return [...compareList].sort((a, b) => a.price - b.price)[0]?.id;
+  }, [compareList]);
+
+  const ratingWinnerId = useMemo(() => {
+    if (compareList.length < 2) return null;
+    return [...compareList].sort((a, b) => b.rating - a.rating)[0]?.id;
+  }, [compareList]);
+
+  const aiScoreWinnerId = useMemo(() => {
+    if (compareList.length < 2) return null;
+    return [...compareList].sort((a, b) => b.aiScore - a.aiScore)[0]?.id;
+  }, [compareList]);
+
+  const batteryWinnerId = useMemo(() => {
+    if (compareList.length < 2) return null;
+    return [...compareList].sort((a, b) => getBatteryValue(b) - getBatteryValue(a))[0]?.id;
+  }, [compareList]);
+
+  const perfWinnerId = useMemo(() => {
+    if (compareList.length < 2) return null;
+    return [...compareList].sort((a, b) => getPerformanceValue(b) - getPerformanceValue(a))[0]?.id;
+  }, [compareList]);
+
+  // Check if a spec row is identical across all compared products
+  const isRowIdentical = (specKey: string): boolean => {
+    if (compareList.length <= 1) return false;
+    const firstVal = (compareList[0].specs[specKey] || '').trim().toLowerCase();
+    return compareList.every(p => ((p.specs[specKey] || '').trim().toLowerCase()) === firstVal);
+  };
+
+  // Copy structured comparison summary
+  const handleCopyComparison = () => {
+    try {
+      let text = `⚡ PriceWise Matrix Comparison (${compareList.length} Models)\n`;
+      text += `Category: ${activeCategory || 'Multi-Category'}\n\n`;
+      compareList.forEach(p => {
+        text += `📱 ${p.brand} ${p.name}\n`;
+        text += `• Price: ₹${p.price.toLocaleString("en-IN")}\n`;
+        text += `• AI WiseScore: ${p.aiScore}/100\n`;
+        text += `• User Rating: ${p.rating}/5.0\n`;
+        Object.entries(p.specs).slice(0, 4).forEach(([k, v]) => {
+          text += `• ${k}: ${v}\n`;
+        });
+        text += `\n`;
+      });
+      navigator.clipboard.writeText(text);
+      setCopiedComparison(true);
+      setTimeout(() => setCopiedComparison(false), 3000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Generate Buyer Persona Verdicts
+  const personaRecommendations = useMemo(() => {
+    if (compareList.length === 0) return [];
+    return compareList.map((p) => {
+      let persona = 'Balanced All-Rounder';
+      let tag = 'General Recommendation';
+      let badgeColor = 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800';
+
+      if (p.id === priceWinnerId) {
+        persona = 'Value Champions & Budget Maximizers';
+        tag = 'Lowest Total Out-of-Pocket Cost';
+        badgeColor = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
+      } else if (p.id === perfWinnerId || p.id === aiScoreWinnerId) {
+        persona = 'Heavy Power Users, Creatives & Gamers';
+        tag = 'Uncompromising Silicon Speed';
+        badgeColor = 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800';
+      } else if (p.id === batteryWinnerId) {
+        persona = 'Frequent Travelers & Road Warriors';
+        tag = 'Maximum Unplugged Endurance';
+        badgeColor = 'bg-teal-50 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border-teal-200 dark:border-teal-800';
+      } else if (p.id === ratingWinnerId) {
+        persona = 'Verified Customer Favorite';
+        tag = 'Highest Long-Term Satisfaction';
+        badgeColor = 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800';
+      }
+
+      return {
+        product: p,
+        persona,
+        tag,
+        badgeColor,
+        reason: p.aiRecommendation || `${p.brand} ${p.name} delivers specialized hardware engineering tailored for users prioritizing ${tag.toLowerCase()}.`
+      };
+    });
+  }, [compareList, priceWinnerId, perfWinnerId, aiScoreWinnerId, batteryWinnerId, ratingWinnerId]);
 
   const getWiseScoreColorClass = (score: number) => {
     if (score >= 90) return { bg: 'bg-emerald-500/10 dark:bg-emerald-950/40', border: 'border-emerald-500/30', text: 'text-emerald-600 dark:text-emerald-400', hex: '#10B981' };
@@ -891,19 +989,151 @@ export default function ProductComparer({
           </AnimatePresence>
 
           {/* ========================================================================= */}
+          {/* AI BUYER PERSONA & VERDICT GUIDE                                          */}
+          {/* ========================================================================= */}
+          {personaRecommendations.length > 0 && (
+            <div className="bg-gradient-to-br from-purple-900/10 via-indigo-900/5 to-transparent border border-purple-200/80 dark:border-purple-800/60 rounded-3xl p-5 sm:p-6 shadow-sm mb-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-purple-500/10 dark:bg-purple-500/20 text-[#7C3AED] dark:text-purple-400">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-[#111827] dark:text-white">
+                      AI Buyer Persona Match & Smart Verdicts
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      Tailored recommendations based on real-world silicon benchmarks, thermals, and price-to-spec ratios.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowPersonaGuide(!showPersonaGuide)}
+                  className="text-xs font-black text-purple-600 dark:text-purple-400 flex items-center gap-1 hover:underline cursor-pointer"
+                >
+                  <span>{showPersonaGuide ? 'Collapse Guide' : 'Expand Guide'}</span>
+                  {showPersonaGuide ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {showPersonaGuide && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2"
+                  >
+                    {personaRecommendations.map(({ product, persona, tag, badgeColor, reason }, idx) => (
+                      <div
+                        key={product.id}
+                        className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: getProductColor(idx) }} />
+                        
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <span className="text-[10px] font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider">
+                              {product.brand}
+                            </span>
+                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${badgeColor}`}>
+                              {tag}
+                            </span>
+                          </div>
+
+                          <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 line-clamp-1 mb-1">
+                            {product.name}
+                          </h4>
+
+                          <div className="text-xs font-black text-indigo-600 dark:text-indigo-400 mb-2">
+                            Best For: <span className="text-slate-800 dark:text-slate-200 font-bold">{persona}</span>
+                          </div>
+
+                          <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                            {reason}
+                          </p>
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                          <span className="font-black text-slate-900 dark:text-white">₹{product.price.toLocaleString('en-IN')}</span>
+                          <span className="text-[10px] font-black bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-md">
+                            WiseScore {product.aiScore}/100
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
           {/* MAIN SPECIFICATIONS TABLE MATRIX                                          */}
           {/* ========================================================================= */}
           <div className="bg-white dark:bg-[#111827] border-2 border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm" id="comparison-specs-table-card">
-            {activeCategory && (
-              <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex flex-wrap justify-between items-center gap-4">
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                  Category Scope: <span className="font-black text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 px-2.5 py-0.5 rounded-md ml-1">{activeCategory}</span>
-                </span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">
-                  Median price for selection: <span className="text-slate-700 dark:text-slate-200 font-black">₹{medianPrice.toLocaleString('en-IN')}</span> • Avg Rating: <span className="text-amber-500 font-black">{averageRating.toFixed(2)}★</span>
+            
+            {/* Top Toolbar & Filter Control */}
+            <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-5 sm:px-6 py-4 flex flex-wrap justify-between items-center gap-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                {activeCategory && (
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                    Scope: <span className="font-black text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 px-2.5 py-0.5 rounded-md ml-1">{activeCategory}</span>
+                  </span>
+                )}
+                <span className="text-[11px] text-slate-400 dark:text-slate-500 font-bold hidden sm:inline">
+                  Median: <span className="text-slate-700 dark:text-slate-200 font-black">₹{medianPrice.toLocaleString('en-IN')}</span> • Avg Rating: <span className="text-amber-500 font-black">{averageRating.toFixed(2)}★</span>
                 </span>
               </div>
-            )}
+
+              {/* Action Controls */}
+              <div className="flex items-center gap-2.5 flex-wrap w-full sm:w-auto justify-end">
+                {/* Search Spec in Table */}
+                <div className="relative min-w-[170px]">
+                  <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={tableSearchQuery}
+                    onChange={(e) => setTableSearchQuery(e.target.value)}
+                    placeholder="Search spec attributes..."
+                    className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-white dark:bg-[#0B101D] border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#4F46E5]"
+                  />
+                  {tableSearchQuery && (
+                    <button
+                      onClick={() => setTableSearchQuery('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Differences Only Switch */}
+                <button
+                  onClick={() => setHighlightDiffOnly(!highlightDiffOnly)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer border ${
+                    highlightDiffOnly
+                      ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                      : 'bg-white dark:bg-[#0B101D] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                  title="Toggle highlights on attributes that differ between models"
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  <span>{highlightDiffOnly ? 'Differences Highlighted' : 'Highlight Differences'}</span>
+                </button>
+
+                {/* Copy Comparison Summary */}
+                <button
+                  onClick={handleCopyComparison}
+                  className="px-3 py-1.5 rounded-xl text-xs font-black bg-white dark:bg-[#0B101D] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  title="Copy comparison summary to clipboard"
+                >
+                  {copiedComparison ? <CheckCheck className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                  <span>{copiedComparison ? 'Copied Summary!' : 'Copy Summary'}</span>
+                </button>
+              </div>
+            </div>
 
             <div className="overflow-x-auto">
               <table className="w-full table-fixed min-w-[900px] border-collapse">
@@ -911,7 +1141,7 @@ export default function ProductComparer({
                 <thead>
                   <tr className="border-b-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
                     {/* Attributes index col */}
-                    <th className="w-1/5 min-w-[200px] p-6 text-left align-middle sticky left-0 bg-slate-50 dark:bg-slate-900 z-20 border-r border-slate-200 dark:border-slate-800">
+                    <th className="w-1/5 min-w-[200px] p-5 text-left align-middle sticky left-0 bg-slate-50 dark:bg-slate-900 z-20 border-r border-slate-200 dark:border-slate-800">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">COMPARATIVE INDEX</span>
                       <span className="text-[11px] font-black text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 px-3 py-1 rounded-xl mt-2 inline-block">
                         Comparing {compareList.length} of {maxItems}
@@ -923,9 +1153,12 @@ export default function ProductComparer({
                       const delta = prod.price - medianPrice;
                       const isAbove = delta > 0;
                       const isAt = delta === 0;
+                      const isPriceLeader = prod.id === priceWinnerId;
+                      const isAiLeader = prod.id === aiScoreWinnerId;
+                      const isRatingLeader = prod.id === ratingWinnerId;
 
                       return (
-                        <th key={prod.id} className="p-6 text-left align-top relative group border-r border-slate-100 dark:border-slate-800 last:border-r-0">
+                        <th key={prod.id} className="p-5 text-left align-top relative group border-r border-slate-100 dark:border-slate-800 last:border-r-0">
                           {/* Delete item button */}
                           <button
                             onClick={() => onRemoveFromCompare(prod.id)}
@@ -936,7 +1169,26 @@ export default function ProductComparer({
                           </button>
 
                           {/* Top Indicator Color strip */}
-                          <div className="h-1.5 w-14 rounded-full mb-4" style={{ backgroundColor: getProductColor(idx) }} />
+                          <div className="h-1.5 w-14 rounded-full mb-3" style={{ backgroundColor: getProductColor(idx) }} />
+
+                          {/* Winner Badges */}
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {isPriceLeader && (
+                              <span className="text-[9px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                                <Crown className="h-2.5 w-2.5" /> Best Deal
+                              </span>
+                            )}
+                            {isAiLeader && (
+                              <span className="text-[9px] font-black bg-purple-600 text-white px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                                <Sparkles className="h-2.5 w-2.5" /> AI Winner
+                              </span>
+                            )}
+                            {isRatingLeader && (
+                              <span className="text-[9px] font-black bg-amber-500 text-slate-900 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                                <Star className="h-2.5 w-2.5 fill-current" /> Top Rated
+                              </span>
+                            )}
+                          </div>
 
                           {/* Image container */}
                           <div className="h-16 w-16 rounded-2xl bg-white dark:bg-slate-800 overflow-hidden border-2 border-slate-100 dark:border-slate-700 p-1.5 mb-3 flex items-center justify-center shadow-sm">
@@ -963,9 +1215,9 @@ export default function ProductComparer({
 
                     {/* Empty Slots Column(s) for Dropdown Selector */}
                     {Array.from({ length: emptySlotsCount }).map((_, idx) => (
-                      <th key={`empty-${idx}`} className="p-6 text-left align-top border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/30 dark:bg-slate-900/30">
-                        <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-5 h-full flex flex-col justify-center items-center text-center space-y-3 min-h-[140px]">
-                          <div className="h-9 w-9 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-full flex items-center justify-center">
+                      <th key={`empty-${idx}`} className="p-5 text-left align-top border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/30 dark:bg-slate-900/30">
+                        <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 h-full flex flex-col justify-center items-center text-center space-y-3 min-h-[140px]">
+                          <div className="h-8 w-8 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-full flex items-center justify-center">
                             <Plus className="h-4 w-4" />
                           </div>
                           <div className="w-full">
@@ -977,7 +1229,7 @@ export default function ProductComparer({
                                   if (selected) onAddToCompare(selected);
                                   e.target.value = ''; // reset select
                                 }}
-                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-[11px] text-[#475569] dark:text-slate-300 font-black focus:outline-none focus:border-purple-500 cursor-pointer shadow-sm"
+                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-[11px] text-[#475569] dark:text-slate-300 font-black focus:outline-none focus:border-purple-500 cursor-pointer shadow-sm"
                               >
                                 <option value="">-- Choose Model --</option>
                                 {availableToCompare.map((p) => (
@@ -1000,301 +1252,371 @@ export default function ProductComparer({
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   
                   {/* AI Match Score Row */}
-                  <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
-                    <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                      <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
-                        <Sparkles className="h-4 w-4 text-amber-500" />
-                        <span>AI WISE SCORE</span>
-                      </div>
-                    </td>
-                    {compareList.map((prod) => {
-                      const scoreDetails = getWiseScoreColorClass(prod.aiScore);
-                      return (
-                        <td key={prod.id} className="p-4 text-xs font-bold border-r border-slate-100 dark:border-slate-800 last:border-r-0">
-                          <div className="flex items-center gap-2">
-                            <div className="relative flex items-center justify-center">
-                              <div className={`h-11 w-11 rounded-full flex items-center justify-center text-base font-black border-2 ${scoreDetails.bg} ${scoreDetails.text} ${scoreDetails.border}`}>
-                                {prod.aiScore}
-                              </div>
-                            </div>
-                            <div>
-                              <span className="text-[9px] text-slate-400 font-black block">INTELLIGENCE SCORE</span>
-                              <span className="text-[9px] text-[#475569] dark:text-slate-400 font-bold block">Smart matched index</span>
-                            </div>
-                          </div>
-                        </td>
-                      );
-                    })}
-                    {Array.from({ length: emptySlotsCount }).map((_, idx) => (
-                      <td key={`empty-aiscore-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
-                    ))}
-                  </tr>
-
-                  {/* Value For Money Rating */}
-                  <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
-                    <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                      <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
-                        <Award className="h-4 w-4 text-purple-500" />
-                        <span>Value for Money</span>
-                      </div>
-                    </td>
-                    {compareList.map((prod) => {
-                      const val = getValueForMoney(prod);
-                      return (
-                        <td key={prod.id} className="p-4 text-xs border-r border-slate-100 dark:border-slate-800 last:border-r-0 align-top">
-                          <span className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-black border uppercase tracking-wider mb-1 ${val.color}`}>
-                            {val.label}
-                          </span>
-                          <p className="text-[10px] text-[#475569] dark:text-slate-400 font-bold mt-0.5">{val.desc}</p>
-                        </td>
-                      );
-                    })}
-                    {Array.from({ length: emptySlotsCount }).map((_, idx) => (
-                      <td key={`empty-val-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
-                    ))}
-                  </tr>
-
-                  {/* User Rating */}
-                  <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
-                    <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                      <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
-                        <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                        <span>User Satisfaction</span>
-                      </div>
-                    </td>
-                    {compareList.map((prod) => (
-                      <td key={prod.id} className="p-4 text-xs font-bold border-r border-slate-100 dark:border-slate-800 last:border-r-0">
-                        <div className="flex items-center gap-1 text-[#111827] dark:text-white">
-                          <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                          <span className="font-black text-sm">{prod.rating}</span>
-                          <span className="text-[#475569] dark:text-slate-400 text-[11px] font-bold">/ 5.0</span>
+                  {(!tableSearchQuery || 'ai wise score'.includes(tableSearchQuery.toLowerCase())) && (
+                    <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
+                          <Sparkles className="h-4 w-4 text-amber-500" />
+                          <span>AI WISE SCORE</span>
                         </div>
                       </td>
-                    ))}
-                    {Array.from({ length: emptySlotsCount }).map((_, idx) => (
-                      <td key={`empty-usr-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
-                    ))}
-                  </tr>
+                      {compareList.map((prod) => {
+                        const scoreDetails = getWiseScoreColorClass(prod.aiScore);
+                        const isWinner = prod.id === aiScoreWinnerId;
+                        return (
+                          <td key={prod.id} className={`p-4 text-xs font-bold border-r border-slate-100 dark:border-slate-800 last:border-r-0 ${isWinner ? 'bg-purple-50/40 dark:bg-purple-950/20' : ''}`}>
+                            <div className="flex items-center gap-2">
+                              <div className="relative flex items-center justify-center">
+                                <div className={`h-11 w-11 rounded-full flex items-center justify-center text-base font-black border-2 ${scoreDetails.bg} ${scoreDetails.text} ${scoreDetails.border}`}>
+                                  {prod.aiScore}
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-[9px] text-slate-400 font-black block">INTELLIGENCE SCORE</span>
+                                <span className="text-[9px] text-[#475569] dark:text-slate-400 font-bold block">
+                                  {isWinner ? '🏆 Category Leader' : 'Smart matched index'}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                        );
+                      })}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                        <td key={`empty-aiscore-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
+                      ))}
+                    </tr>
+                  )}
+
+                  {/* Value For Money Rating */}
+                  {(!tableSearchQuery || 'value for money'.includes(tableSearchQuery.toLowerCase())) && (
+                    <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
+                          <Award className="h-4 w-4 text-purple-500" />
+                          <span>Value for Money</span>
+                        </div>
+                      </td>
+                      {compareList.map((prod) => {
+                        const val = getValueForMoney(prod);
+                        return (
+                          <td key={prod.id} className="p-4 text-xs border-r border-slate-100 dark:border-slate-800 last:border-r-0 align-top">
+                            <span className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-black border uppercase tracking-wider mb-1 ${val.color}`}>
+                              {val.label}
+                            </span>
+                            <p className="text-[10px] text-[#475569] dark:text-slate-400 font-bold mt-0.5">{val.desc}</p>
+                          </td>
+                        );
+                      })}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                        <td key={`empty-val-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
+                      ))}
+                    </tr>
+                  )}
+
+                  {/* User Rating */}
+                  {(!tableSearchQuery || 'user satisfaction rating'.includes(tableSearchQuery.toLowerCase())) && (
+                    <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
+                          <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                          <span>User Satisfaction</span>
+                        </div>
+                      </td>
+                      {compareList.map((prod) => {
+                        const isWinner = prod.id === ratingWinnerId;
+                        return (
+                          <td key={prod.id} className={`p-4 text-xs font-bold border-r border-slate-100 dark:border-slate-800 last:border-r-0 ${isWinner ? 'bg-amber-50/30 dark:bg-amber-950/20' : ''}`}>
+                            <div className="flex items-center gap-1 text-[#111827] dark:text-white">
+                              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                              <span className="font-black text-sm">{prod.rating}</span>
+                              <span className="text-[#475569] dark:text-slate-400 text-[11px] font-bold">/ 5.0</span>
+                              {isWinner && <span className="ml-1 text-[9px] font-black text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded">Highest</span>}
+                            </div>
+                          </td>
+                        );
+                      })}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                        <td key={`empty-usr-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
+                      ))}
+                    </tr>
+                  )}
 
                   {/* Processor */}
-                  <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
-                    <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                      <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
-                        <Cpu className="h-4 w-4 text-blue-500" />
-                        <span>Processor</span>
-                      </div>
-                    </td>
-                    {compareList.map((prod) => (
-                      <td key={prod.id} className="p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0 whitespace-normal leading-relaxed">
-                        {prod.specs['Processor'] || prod.specs['Processor/Engine'] || <span className="text-slate-400 font-normal">N/A</span>}
-                      </td>
-                    ))}
-                    {Array.from({ length: emptySlotsCount }).map((_, idx) => (
-                      <td key={`empty-proc-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
-                    ))}
-                  </tr>
-
-                  {/* Display Quality */}
-                  <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
-                    <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                      <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
-                        <Monitor className="h-4 w-4 text-indigo-500" />
-                        <span>Display Quality</span>
-                      </div>
-                    </td>
-                    {compareList.map((prod) => (
-                      <td key={prod.id} className="p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0 whitespace-normal leading-relaxed">
-                        {prod.specs['Display'] || <span className="text-slate-400 font-normal">N/A</span>}
-                      </td>
-                    ))}
-                    {Array.from({ length: emptySlotsCount }).map((_, idx) => (
-                      <td key={`empty-disp-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
-                    ))}
-                  </tr>
-
-                  {/* Memory & Storage */}
-                  <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
-                    <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                      <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
-                        <Zap className="h-4 w-4 text-emerald-500" />
-                        <span>Storage / RAM</span>
-                      </div>
-                    </td>
-                    {compareList.map((prod) => (
-                      <td key={prod.id} className="p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0">
-                        {prod.specs['Storage'] || prod.specs['Memory'] || prod.specs['Memory/Storage'] || <span className="text-slate-400 font-normal">N/A</span>}
-                      </td>
-                    ))}
-                    {Array.from({ length: emptySlotsCount }).map((_, idx) => (
-                      <td key={`empty-stor-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
-                    ))}
-                  </tr>
-
-                  {/* Battery Life */}
-                  <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
-                    <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                      <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
-                        <Battery className="h-4 w-4 text-emerald-500" />
-                        <span>Battery Endurance</span>
-                      </div>
-                    </td>
-                    {compareList.map((prod) => (
-                      <td key={prod.id} className="p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0 whitespace-normal leading-relaxed">
-                        {prod.specs['Battery'] || prod.specs['Battery Life'] || <span className="text-slate-400 font-normal">N/A</span>}
-                      </td>
-                    ))}
-                    {Array.from({ length: emptySlotsCount }).map((_, idx) => (
-                      <td key={`empty-batt-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
-                    ))}
-                  </tr>
-
-                  {/* Camera Capabilities */}
-                  <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
-                    <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                      <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
-                        <Camera className="h-4 w-4 text-rose-500" />
-                        <span>Camera Specs</span>
-                      </div>
-                    </td>
-                    {compareList.map((prod) => (
-                      <td key={prod.id} className="p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0 whitespace-normal leading-relaxed">
-                        {prod.specs['Camera'] || <span className="text-slate-400 font-bold">Standard / Dynamic Audio-Video Drivers</span>}
-                      </td>
-                    ))}
-                    {Array.from({ length: emptySlotsCount }).map((_, idx) => (
-                      <td key={`empty-cam-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
-                    ))}
-                  </tr>
-
-                  {/* Performance Metrics */}
-                  <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
-                    <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                      <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
-                        <Zap className="h-4 w-4 text-amber-500 animate-pulse" />
-                        <span>Performance Ratings</span>
-                      </div>
-                    </td>
-                    {compareList.map((prod) => {
-                      const perf = getPerformanceMetrics(prod);
-                      return (
-                        <td key={prod.id} className="p-4 text-xs border-r border-slate-100 dark:border-slate-800 last:border-r-0 align-top">
-                          <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                            <span className="font-black text-[#111827] dark:text-white">{perf.label}</span>
-                            <span className="bg-purple-500/10 border border-purple-500/30 text-purple-600 dark:text-purple-400 font-black text-[10px] px-2 py-0.5 rounded-md">
-                              {perf.rating}
-                            </span>
+                  {(!tableSearchQuery || 'processor cpu chipset'.includes(tableSearchQuery.toLowerCase())) && (
+                    <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
+                            <Cpu className="h-4 w-4 text-blue-500" />
+                            <span>Processor</span>
                           </div>
-                          <p className="text-[10px] text-[#475569] dark:text-slate-400 leading-relaxed font-semibold">{perf.details}</p>
-                        </td>
-                      );
-                    })}
-                    {Array.from({ length: emptySlotsCount }).map((_, idx) => (
-                      <td key={`empty-perf-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
-                    ))}
-                  </tr>
-
-                  {/* Warranty Information */}
-                  <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
-                    <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                      <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
-                        <Shield className="h-4 w-4 text-emerald-500" />
-                        <span>Warranty Specs</span>
-                      </div>
-                    </td>
-                    {compareList.map((prod) => (
-                      <td key={prod.id} className="p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0">
-                        {prod.specs['Warranty'] || <span className="text-[#475569] dark:text-slate-400 font-bold">1 Year Domestic Retail Support</span>}
-                      </td>
-                    ))}
-                    {Array.from({ length: emptySlotsCount }).map((_, idx) => (
-                      <td key={`empty-warr-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
-                    ))}
-                  </tr>
-
-                  {/* Technical Specifications - Remaining Keys if any */}
-                  {remainingSpecKeys.map((key) => (
-                    <tr key={key} className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
-                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-wider bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] capitalize">
-                        {key}
+                          {!isRowIdentical('Processor') && highlightDiffOnly && (
+                            <span className="text-[8px] font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded">Diff</span>
+                          )}
+                        </div>
                       </td>
                       {compareList.map((prod) => (
-                        <td key={prod.id} className="p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0">
-                          {prod.specs[key] || <span className="text-slate-400 font-normal">Not Applicable</span>}
+                        <td key={prod.id} className="p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0 whitespace-normal leading-relaxed">
+                          {prod.specs['Processor'] || prod.specs['Processor/Engine'] || <span className="text-slate-400 font-normal">N/A</span>}
                         </td>
                       ))}
                       {Array.from({ length: emptySlotsCount }).map((_, idx) => (
-                        <td key={`empty-rem-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
+                        <td key={`empty-proc-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
                       ))}
                     </tr>
-                  ))}
+                  )}
+
+                  {/* Display Quality */}
+                  {(!tableSearchQuery || 'display screen resolution refresh'.includes(tableSearchQuery.toLowerCase())) && (
+                    <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
+                            <Monitor className="h-4 w-4 text-indigo-500" />
+                            <span>Display Quality</span>
+                          </div>
+                          {!isRowIdentical('Display') && highlightDiffOnly && (
+                            <span className="text-[8px] font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded">Diff</span>
+                          )}
+                        </div>
+                      </td>
+                      {compareList.map((prod) => (
+                        <td key={prod.id} className="p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0 whitespace-normal leading-relaxed">
+                          {prod.specs['Display'] || <span className="text-slate-400 font-normal">N/A</span>}
+                        </td>
+                      ))}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                        <td key={`empty-disp-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
+                      ))}
+                    </tr>
+                  )}
+
+                  {/* Memory & Storage */}
+                  {(!tableSearchQuery || 'storage ram memory'.includes(tableSearchQuery.toLowerCase())) && (
+                    <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
+                            <Zap className="h-4 w-4 text-emerald-500" />
+                            <span>Storage / RAM</span>
+                          </div>
+                          {!isRowIdentical('Storage') && highlightDiffOnly && (
+                            <span className="text-[8px] font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded">Diff</span>
+                          )}
+                        </div>
+                      </td>
+                      {compareList.map((prod) => (
+                        <td key={prod.id} className="p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0">
+                          {prod.specs['Storage'] || prod.specs['Memory'] || prod.specs['Memory/Storage'] || <span className="text-slate-400 font-normal">N/A</span>}
+                        </td>
+                      ))}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                        <td key={`empty-stor-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
+                      ))}
+                    </tr>
+                  )}
+
+                  {/* Battery Life */}
+                  {(!tableSearchQuery || 'battery life endurance mah'.includes(tableSearchQuery.toLowerCase())) && (
+                    <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
+                            <Battery className="h-4 w-4 text-emerald-500" />
+                            <span>Battery Endurance</span>
+                          </div>
+                          {prodIsWinner => null}
+                        </div>
+                      </td>
+                      {compareList.map((prod) => {
+                        const isWinner = prod.id === batteryWinnerId;
+                        return (
+                          <td key={prod.id} className={`p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0 whitespace-normal leading-relaxed ${isWinner ? 'bg-teal-50/30 dark:bg-teal-950/20' : ''}`}>
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <span>{prod.specs['Battery'] || prod.specs['Battery Life'] || <span className="text-slate-400 font-normal">N/A</span>}</span>
+                              {isWinner && <span className="text-[9px] font-black text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-900/40 px-1.5 py-0.5 rounded">Top Battery</span>}
+                            </div>
+                          </td>
+                        );
+                      })}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                        <td key={`empty-batt-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
+                      ))}
+                    </tr>
+                  )}
+
+                  {/* Camera Capabilities */}
+                  {(!tableSearchQuery || 'camera optics lens mp sensor'.includes(tableSearchQuery.toLowerCase())) && (
+                    <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
+                          <Camera className="h-4 w-4 text-rose-500" />
+                          <span>Camera Specs</span>
+                        </div>
+                      </td>
+                      {compareList.map((prod) => (
+                        <td key={prod.id} className="p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0 whitespace-normal leading-relaxed">
+                          {prod.specs['Camera'] || <span className="text-slate-400 font-bold">Standard / Dynamic Audio-Video Drivers</span>}
+                        </td>
+                      ))}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                        <td key={`empty-cam-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
+                      ))}
+                    </tr>
+                  )}
+
+                  {/* Performance Metrics */}
+                  {(!tableSearchQuery || 'performance benchmark gaming'.includes(tableSearchQuery.toLowerCase())) && (
+                    <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
+                          <Zap className="h-4 w-4 text-amber-500 animate-pulse" />
+                          <span>Performance Ratings</span>
+                        </div>
+                      </td>
+                      {compareList.map((prod) => {
+                        const perf = getPerformanceMetrics(prod);
+                        const isWinner = prod.id === perfWinnerId;
+                        return (
+                          <td key={prod.id} className={`p-4 text-xs border-r border-slate-100 dark:border-slate-800 last:border-r-0 align-top ${isWinner ? 'bg-purple-50/30 dark:bg-purple-950/20' : ''}`}>
+                            <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                              <span className="font-black text-[#111827] dark:text-white">{perf.label}</span>
+                              <span className="bg-purple-500/10 border border-purple-500/30 text-purple-600 dark:text-purple-400 font-black text-[10px] px-2 py-0.5 rounded-md">
+                                {perf.rating}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-[#475569] dark:text-slate-400 leading-relaxed font-semibold">{perf.details}</p>
+                          </td>
+                        );
+                      })}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                        <td key={`empty-perf-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
+                      ))}
+                    </tr>
+                  )}
+
+                  {/* Warranty Information */}
+                  {(!tableSearchQuery || 'warranty guarantee support'.includes(tableSearchQuery.toLowerCase())) && (
+                    <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
+                          <Shield className="h-4 w-4 text-emerald-500" />
+                          <span>Warranty Specs</span>
+                        </div>
+                      </td>
+                      {compareList.map((prod) => (
+                        <td key={prod.id} className="p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0">
+                          {prod.specs['Warranty'] || <span className="text-[#475569] dark:text-slate-400 font-bold">1 Year Domestic Retail Support</span>}
+                        </td>
+                      ))}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                        <td key={`empty-warr-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
+                      ))}
+                    </tr>
+                  )}
+
+                  {/* Technical Specifications - Remaining Keys if any */}
+                  {remainingSpecKeys
+                    .filter(key => !tableSearchQuery || key.toLowerCase().includes(tableSearchQuery.toLowerCase()))
+                    .map((key) => {
+                      const isDiff = !isRowIdentical(key);
+                      if (highlightDiffOnly && !isDiff) return null;
+
+                      return (
+                        <tr key={key} className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                          <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-wider bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] capitalize">
+                            <div className="flex items-center justify-between">
+                              <span>{key}</span>
+                              {isDiff && highlightDiffOnly && (
+                                <span className="text-[8px] font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded">Diff</span>
+                              )}
+                            </div>
+                          </td>
+                          {compareList.map((prod) => (
+                            <td key={prod.id} className="p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0">
+                              {prod.specs[key] || <span className="text-slate-400 font-normal">Not Applicable</span>}
+                            </td>
+                          ))}
+                          {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                            <td key={`empty-rem-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
+                          ))}
+                        </tr>
+                      );
+                    })}
 
                   {/* Pros */}
-                  <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
-                    <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                      <div className="flex items-center gap-1.5 text-emerald-500">
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span>Strengths (Pros)</span>
-                      </div>
-                    </td>
-                    {compareList.map((prod) => (
-                      <td key={prod.id} className="p-4 text-xs text-[#475569] dark:text-slate-300 align-top pr-6 font-semibold border-r border-slate-100 dark:border-slate-800 last:border-r-0">
-                        <ul className="space-y-1.5">
-                          {prod.pros.slice(0, 4).map((p, idx) => (
-                            <li key={idx} className="flex items-start gap-1.5 leading-snug">
-                              <span className="text-emerald-500 font-black text-sm">•</span>
-                              <span>{p}</span>
-                            </li>
-                          ))}
-                        </ul>
+                  {(!tableSearchQuery || 'pros strengths advantages'.includes(tableSearchQuery.toLowerCase())) && (
+                    <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1.5 text-emerald-500">
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span>Strengths (Pros)</span>
+                        </div>
                       </td>
-                    ))}
-                    {Array.from({ length: emptySlotsCount }).map((_, idx) => (
-                      <td key={`empty-pro-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
-                    ))}
-                  </tr>
+                      {compareList.map((prod) => (
+                        <td key={prod.id} className="p-4 text-xs text-[#475569] dark:text-slate-300 align-top pr-6 font-semibold border-r border-slate-100 dark:border-slate-800 last:border-r-0">
+                          <ul className="space-y-1.5">
+                            {prod.pros.slice(0, 4).map((p, idx) => (
+                              <li key={idx} className="flex items-start gap-1.5 leading-snug">
+                                <span className="text-emerald-500 font-black text-sm">•</span>
+                                <span>{p}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </td>
+                      ))}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                        <td key={`empty-pro-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
+                      ))}
+                    </tr>
+                  )}
 
                   {/* Cons */}
-                  <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
-                    <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                      <div className="flex items-center gap-1.5 text-rose-500">
-                        <Trash2 className="h-4 w-4" />
-                        <span>Drawbacks (Cons)</span>
-                      </div>
-                    </td>
-                    {compareList.map((prod) => (
-                      <td key={prod.id} className="p-4 text-xs text-[#475569] dark:text-slate-300 align-top pr-6 font-semibold border-r border-slate-100 dark:border-slate-800 last:border-r-0">
-                        <ul className="space-y-1.5">
-                          {prod.cons.slice(0, 4).map((c, idx) => (
-                            <li key={idx} className="flex items-start gap-1.5 leading-snug">
-                              <span className="text-rose-500 font-black text-sm">•</span>
-                              <span>{c}</span>
-                            </li>
-                          ))}
-                        </ul>
+                  {(!tableSearchQuery || 'cons drawbacks weaknesses'.includes(tableSearchQuery.toLowerCase())) && (
+                    <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1.5 text-rose-500">
+                          <Trash2 className="h-4 w-4" />
+                          <span>Drawbacks (Cons)</span>
+                        </div>
                       </td>
-                    ))}
-                    {Array.from({ length: emptySlotsCount }).map((_, idx) => (
-                      <td key={`empty-con-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
-                    ))}
-                  </tr>
+                      {compareList.map((prod) => (
+                        <td key={prod.id} className="p-4 text-xs text-[#475569] dark:text-slate-300 align-top pr-6 font-semibold border-r border-slate-100 dark:border-slate-800 last:border-r-0">
+                          <ul className="space-y-1.5">
+                            {prod.cons.slice(0, 4).map((c, idx) => (
+                              <li key={idx} className="flex items-start gap-1.5 leading-snug">
+                                <span className="text-rose-500 font-black text-sm">•</span>
+                                <span>{c}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </td>
+                      ))}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                        <td key={`empty-con-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
+                      ))}
+                    </tr>
+                  )}
 
                   {/* AI Verdict */}
-                  <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
-                    <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                      <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
-                        <Sparkles className="h-4 w-4 text-amber-400" />
-                        <span>AI Recommendation</span>
-                      </div>
-                    </td>
-                    {compareList.map((prod) => (
-                      <td key={prod.id} className="p-4 text-xs text-[#475569] dark:text-slate-300 leading-relaxed italic pr-6 align-top font-medium border-r border-slate-100 dark:border-slate-800 last:border-r-0">
-                        "{prod.aiRecommendation || 'Excellent balanced model with outstanding benchmarks.'}"
+                  {(!tableSearchQuery || 'ai recommendation verdict'.includes(tableSearchQuery.toLowerCase())) && (
+                    <tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
+                          <Sparkles className="h-4 w-4 text-amber-400" />
+                          <span>AI Recommendation</span>
+                        </div>
                       </td>
-                    ))}
-                    {Array.from({ length: emptySlotsCount }).map((_, idx) => (
-                      <td key={`empty-ver-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
-                    ))}
-                  </tr>
+                      {compareList.map((prod) => (
+                        <td key={prod.id} className="p-4 text-xs text-[#475569] dark:text-slate-300 leading-relaxed italic pr-6 align-top font-medium border-r border-slate-100 dark:border-slate-800 last:border-r-0">
+                          "{prod.aiRecommendation || 'Excellent balanced model with outstanding benchmarks.'}"
+                        </td>
+                      ))}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                        <td key={`empty-ver-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
+                      ))}
+                    </tr>
+                  )}
 
                 </tbody>
               </table>

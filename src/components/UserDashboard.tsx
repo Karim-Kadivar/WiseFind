@@ -5,7 +5,7 @@ import {
   Layout, Heart, History, Settings, User, Sparkles, Star, 
   ArrowRight, ShieldCheck, HelpCircle, Folder, Plus, Trash2, 
   Move, Pencil, FileText, CheckCircle2, UserCheck, Key, 
-  CheckSquare, Square, Target, BellRing, Clock, Bookmark,
+  CheckSquare, Square, Target, BellRing, Clock,
   Tag, BarChart2, DollarSign, Calendar
 } from 'lucide-react';
 import { UserTaskOrAlert, loadUserDataForEmail, saveUserDataForEmail } from '../utils/profileStorage';

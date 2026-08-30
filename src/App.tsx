@@ -917,6 +917,9 @@ export function AppContent() {
               favorites={favorites.map(f => f.id)}
               compareList={compareList}
               onNavigateToCompare={() => setActiveTab('compare')}
+              onAskWiseBot={(q) => {
+                setActiveTab('wisebot');
+              }}
             />
           </motion.div>
         )}
@@ -982,6 +985,9 @@ export function AppContent() {
               onProductClick={(p) => {
                 setSelectedProduct(p);
               }}
+              onAddToCompare={handleAddToCompare}
+              onToggleFavorite={handleToggleFavorite}
+              favorites={favorites}
             />
           </motion.div>
         )}
@@ -999,6 +1005,9 @@ export function AppContent() {
               onProductSelect={(p) => {
                 setSelectedProduct(p);
               }}
+              onAddToCompare={handleAddToCompare}
+              onToggleFavorite={handleToggleFavorite}
+              favorites={favorites}
             />
           </motion.div>
         )}
@@ -1145,6 +1154,10 @@ export function AppContent() {
             onAddProductToWishlist={handleAddProductToWishlist}
             compareList={compareList}
             onAddToCompare={handleAddToCompare}
+            onAskWiseBot={(q) => {
+              setSelectedProduct(null);
+              setActiveTab('wisebot');
+            }}
           />
         )}
       </AnimatePresence>

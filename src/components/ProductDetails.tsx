@@ -1,11 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Product } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Star, Heart, Check, HelpCircle, ArrowRight, ShieldCheck, ShoppingCart, Info, CheckCircle2, AlertTriangle, ThumbsUp, ThumbsDown, MessageSquare, TrendingUp, TrendingDown, Clock, Bell, BellRing, ChevronDown, ChevronUp, Zap, Share2, Building2, ExternalLink, Truck, CreditCard, Store, BadgePercent } from 'lucide-react';
+import { 
+  X, Star, Heart, Check, HelpCircle, ArrowRight, ShieldCheck, ShoppingCart, 
+  Info, CheckCircle2, AlertTriangle, ThumbsUp, ThumbsDown, MessageSquare, 
+  TrendingUp, TrendingDown, Clock, Bell, BellRing, ChevronDown, ChevronUp, 
+  Zap, Share2, Building2, ExternalLink, Truck, CreditCard, Store, BadgePercent,
+  Copy, CheckCheck, Search, Cpu, Monitor, Battery, Camera, Wifi, Shield, 
+  Sparkles, Layers, Sliders, RefreshCw, BarChart2
+} from 'lucide-react';
 import LocalStoreFinder from './LocalStoreFinder';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { SafeProductImage } from './SafeProductImage';
 import { generatePlatformComparison, PLATFORM_INFO } from '../data/platformPricing';
+import { WiseBookmarkIcon } from './WiseBookmarkIcon';
+import ProductSpecsSection from './ProductSpecsSection';
 
 interface ProductDetailsProps {
   product: Product;
@@ -18,6 +27,7 @@ interface ProductDetailsProps {
   onAddProductToWishlist?: (wishlistId: string, productId: string) => void;
   compareList?: Product[];
   onAddToCompare?: (product: Product) => void;
+  onAskWiseBot?: (question: string) => void;
 }
 
 export default function ProductDetails({
@@ -30,7 +40,8 @@ export default function ProductDetails({
   wishlists,
   onAddProductToWishlist,
   compareList = [],
-  onAddToCompare
+  onAddToCompare,
+  onAskWiseBot
 }: ProductDetailsProps) {
   const isFavorite = favorites.includes(product.id);
 
@@ -214,7 +225,119 @@ export default function ProductDetails({
   };
 
   // Technical Specs expanded state
-  const [isSpecsExpanded, setIsSpecsExpanded] = useState<boolean>(false);
+  const [isSpecsExpanded, setIsSpecsExpanded] = useState<boolean>(true);
+  const [specSearchQuery, setSpecSearchQuery] = useState<string>('');
+  const [selectedSpecCategory, setSelectedSpecCategory] = useState<string>('all');
+  const [copiedSpecs, setCopiedSpecs] = useState<boolean>(false);
+
+  // Categorize spec keys logically
+  const getSpecCategory = (key: string): string => {
+    const k = key.toLowerCase();
+    if (k.includes('processor') || k.includes('cpu') || k.includes('gpu') || k.includes('chip') || k.includes('ram') || k.includes('memory') || k.includes('storage') || k.includes('os') || k.includes('engine')) return 'performance';
+    if (k.includes('display') || k.includes('screen') || k.includes('resolution') || k.includes('refresh') || k.includes('nits') || k.includes('panel') || k.includes('hdr')) return 'display';
+    if (k.includes('camera') || k.includes('lens') || k.includes('aperture') || k.includes('sensor') || k.includes('zoom') || k.includes('video') || k.includes('megapixels')) return 'camera';
+    if (k.includes('battery') || k.includes('charging') || k.includes('watt') || k.includes('mah') || k.includes('endurance') || k.includes('power')) return 'battery';
+    if (k.includes('wi-fi') || k.includes('wifi') || k.includes('bluetooth') || k.includes('5g') || k.includes('nfc') || k.includes('port') || k.includes('usb') || k.includes('connectivity') || k.includes('sim')) return 'connectivity';
+    if (k.includes('weight') || k.includes('dimension') || k.includes('material') || k.includes('water') || k.includes('ip') || k.includes('durability') || k.includes('build') || k.includes('warranty') || k.includes('glass')) return 'design';
+    return 'other';
+  };
+
+  const specCategoriesList = [
+    { id: 'all', label: 'All Specs', icon: Layers },
+    { id: 'performance', label: 'CPU & Memory', icon: Cpu },
+    { id: 'display', label: 'Display & Glass', icon: Monitor },
+    { id: 'camera', label: 'Optics & Camera', icon: Camera },
+    { id: 'battery', label: 'Battery & Power', icon: Battery },
+    { id: 'connectivity', label: 'Wireless & Ports', icon: Wifi },
+    { id: 'design', label: 'Build & Durability', icon: Shield },
+  ];
+
+  // Filter specs according to search query and active tab
+  const filteredSpecsList = useMemo(() => {
+    return Object.entries(product.specs).filter(([key, val]) => {
+      const matchesSearch = !specSearchQuery.trim() || 
+        key.toLowerCase().includes(specSearchQuery.toLowerCase()) || 
+        val.toLowerCase().includes(specSearchQuery.toLowerCase());
+      
+      const category = getSpecCategory(key);
+      const matchesCat = selectedSpecCategory === 'all' || category === selectedSpecCategory;
+      
+      return matchesSearch && matchesCat;
+    });
+  }, [product.specs, specSearchQuery, selectedSpecCategory]);
+
+  // Copy structured specs sheet
+  const handleCopySpecs = () => {
+    try {
+      const formatted = `${product.brand} ${product.name} — Technical Specifications\nPrice: ₹${product.price.toLocaleString("en-IN")}\nAI WiseScore: ${product.aiScore}/100\n\n` +
+        Object.entries(product.specs).map(([k, v]) => `• ${k}: ${v}`).join('\n');
+      navigator.clipboard.writeText(formatted);
+      setCopiedSpecs(true);
+      setToastMessage(`📋 Formatted specifications for "${product.name}" copied to clipboard!`);
+      setShowToast(true);
+      setTimeout(() => {
+        setCopiedSpecs(false);
+        setShowToast(false);
+      }, 4000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Extract key 4 hero specs
+  const heroSpecs = useMemo(() => {
+    const specs = product.specs;
+    return [
+      {
+        icon: Cpu,
+        label: 'Silicon / Chipset',
+        value: specs['Processor'] || specs['Processor/Engine'] || specs['Chipset'] || 'Flagship Architecture',
+        sub: 'Compute Engine',
+        gradient: 'from-blue-500/15 to-indigo-500/15 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+      },
+      {
+        icon: Monitor,
+        label: 'Screen & Optics',
+        value: specs['Display'] || specs['Screen'] || 'High-Resolution Visuals',
+        sub: 'Visual Surface',
+        gradient: 'from-purple-500/15 to-pink-500/15 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800'
+      },
+      {
+        icon: Battery,
+        label: 'Cell & Endurance',
+        value: specs['Battery'] || specs['Battery Life'] || 'All-Day Performance',
+        sub: 'Power Management',
+        gradient: 'from-emerald-500/15 to-teal-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+      },
+      {
+        icon: Camera,
+        label: 'Optical Imaging',
+        value: specs['Camera'] || specs['Optics'] || specs['Audio'] || specs['Storage'] || 'Pro Capture Array',
+        sub: 'Sensory Specs',
+        gradient: 'from-amber-500/15 to-orange-500/15 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+      }
+    ];
+  }, [product]);
+
+  // Real-world performance indices based on aiScore and category
+  const performanceIndices = useMemo(() => {
+    const score = product.aiScore;
+    const cat = product.category.toLowerCase();
+    
+    let cpuScore = Math.min(99, Math.max(70, Math.round(score * 0.98 + (cat.includes('laptop') || cat.includes('phone') ? 2 : 0))));
+    let gpuScore = Math.min(98, Math.max(68, Math.round(score * 0.94)));
+    let displayScore = Math.min(99, Math.max(75, Math.round(score * 0.96 + (cat.includes('tablet') || cat.includes('phone') ? 3 : 0))));
+    let batteryScore = Math.min(98, Math.max(70, Math.round(score * 0.92)));
+    let thermalScore = Math.min(97, Math.max(72, Math.round(score * 0.90)));
+
+    return [
+      { label: 'Multitasking & CPU Speed', score: cpuScore, desc: 'App launch speed, background processes & load agility' },
+      { label: '3D Graphics & Frame Pacing', score: gpuScore, desc: 'Gaming frame stability & GPU hardware acceleration' },
+      { label: 'Display Vibrancy & HDR Nit Peak', score: displayScore, desc: 'Sunlight readability, color gamut & contrast depth' },
+      { label: 'Real-World Battery Endurance', score: batteryScore, desc: 'Mixed daily workload runtime and power drain curve' },
+      { label: 'Sustained Thermals & Build Rigidity', score: thermalScore, desc: 'Heat dissipation under sustained heavy tasks' },
+    ];
+  }, [product]);
 
   // Price Alert local states
   const [alertPrice, setAlertPrice] = useState<number>(() => {
@@ -533,14 +656,14 @@ export default function ProductDetails({
             <div className="grid grid-cols-2 gap-2.5">
               <button
                 onClick={() => onToggleFavorite(product)}
-                className={`w-full flex items-center justify-center gap-1.5 py-3.5 rounded-xl font-black text-xs sm:text-sm transition-all border-2 cursor-pointer ${
+                className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-xs sm:text-sm transition-all border-2 cursor-pointer ${
                   isFavorite
-                    ? 'bg-red-50 border-red-200 text-red-500'
+                    ? 'bg-black border-purple-500/40 text-white shadow-md'
                     : 'bg-white border-[#111827] text-[#111827] hover:bg-[#111827] hover:text-white'
                 }`}
               >
-                <Heart className={`h-4.5 w-4.5 ${isFavorite ? 'fill-red-500' : ''}`} />
-                <span>{isFavorite ? 'Saved' : 'Save'}</span>
+                <WiseBookmarkIcon size={18} active={isFavorite} />
+                <span>{isFavorite ? 'Bookmarked' : 'Bookmark Spec'}</span>
               </button>
 
               <button
@@ -1219,85 +1342,15 @@ export default function ProductDetails({
             )}
           </div>
 
-          {/* Full Specifications Sheet */}
-          <div>
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Technical Specifications</h4>
-              <button
-                onClick={() => setIsSpecsExpanded(!isSpecsExpanded)}
-                className="text-[10px] font-black text-[#6A73E4] hover:text-[#5861D3] uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
-              >
-                {isSpecsExpanded ? 'Collapse' : 'Expand All'}
-              </button>
-            </div>
-
-            <div className="border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100 relative">
-              {Object.entries(product.specs)
-                .slice(0, isSpecsExpanded ? undefined : 4)
-                .map(([key, value]) => {
-                  const jargonExp = getJargonExplanation(key);
-                  return (
-                    <div key={key} className="p-3.5 hover:bg-slate-50 transition-colors flex flex-col gap-1.5">
-                      <div className="flex justify-between items-center w-full">
-                        <span className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                          <span>{key}</span>
-                          {jargonExp && (
-                            <button
-                              type="button"
-                              onMouseEnter={() => setActiveTooltip(key)}
-                              onMouseLeave={() => setActiveTooltip(null)}
-                              onClick={() => setActiveTooltip(activeTooltip === key ? null : key)}
-                              className="text-slate-400 hover:text-[#6A73E4] transition-colors cursor-pointer inline-flex items-center"
-                              title="Click or hover to explain jargon"
-                            >
-                              <Info className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </span>
-                        <span className="text-xs font-extrabold text-slate-800 text-right max-w-[280px] truncate" title={value}>
-                          {value}
-                        </span>
-                      </div>
-                      
-                      {activeTooltip === key && jargonExp && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="text-[11px] font-semibold text-[#6A73E4] bg-indigo-50/70 border border-indigo-100 rounded-lg p-2.5 leading-relaxed text-left w-full"
-                        >
-                          💡 <b>{key}:</b> {jargonExp}
-                        </motion.div>
-                      )}
-                    </div>
-                  );
-                })}
-              
-              {/* Fade Overlay for collapsed state */}
-              {!isSpecsExpanded && Object.keys(product.specs).length > 4 && (
-                <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none" />
-              )}
-            </div>
-
-            {Object.keys(product.specs).length > 4 && (
-              <button
-                onClick={() => setIsSpecsExpanded(!isSpecsExpanded)}
-                className="w-full flex items-center justify-center gap-1.5 py-2.5 mt-3 text-xs font-black uppercase tracking-wider text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200/80 rounded-xl transition-all cursor-pointer border border-slate-200/40"
-              >
-                {isSpecsExpanded ? (
-                  <>
-                    <ChevronUp className="h-4 w-4" />
-                    <span>Collapse Technical Specifications</span>
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-4 w-4" />
-                    <span>View All {Object.keys(product.specs).length} Technical Specs</span>
-                  </>
-                )}
-              </button>
-            )}
-          </div>
+          {/* Full Specifications & Component Architecture Suite */}
+          <ProductSpecsSection 
+            product={product} 
+            allProducts={allProducts} 
+            onSelectProduct={onSelectProduct} 
+            onAddToCompare={onAddToCompare} 
+            compareList={compareList} 
+            onAskWiseBot={onAskWiseBot}
+          />
 
           {/* Local Store Availability & Maps Grounding */}
           <LocalStoreFinder product={product} />

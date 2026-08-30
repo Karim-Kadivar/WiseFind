@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SafeProductImage } from './SafeProductImage';
+import { WiseBookmarkIcon } from './WiseBookmarkIcon';
 
 interface RecommendedForYouProps {
   searchHistory: string[];
@@ -252,12 +253,12 @@ export default function RecommendedForYou({
                       onClick={() => onToggleFavorite(product)}
                       className={`p-2 rounded-xl border transition-all cursor-pointer ${
                         isFav 
-                          ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 shadow-xs' 
-                          : 'bg-slate-50 dark:bg-[#1A223B] border-slate-200 dark:border-slate-800 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+                          ? 'bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 shadow-xs' 
+                          : 'bg-slate-50 dark:bg-[#1A223B] border-slate-200 dark:border-slate-800 text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30'
                       }`}
                       title={isFav ? 'Remove from Bookmarks' : 'Bookmark Product'}
                     >
-                      <Heart className={`h-3.5 w-3.5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
+                      <WiseBookmarkIcon size={14} active={isFav} />
                     </button>
                   </div>
 

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Product, BuyingGuide, UserRole } from '../types';
 import { 
   X, Heart, User, Settings, Sparkles, LogIn, UserPlus, 
-  Trash2, ArrowRight, CheckCircle2, AlertCircle, Bookmark, Star, 
+  Trash2, ArrowRight, CheckCircle2, AlertCircle, Star, 
   BarChart2, ShieldCheck, History, Folder, Plus, Compass, Info, LogOut,
   ShoppingBag, Users
 } from 'lucide-react';

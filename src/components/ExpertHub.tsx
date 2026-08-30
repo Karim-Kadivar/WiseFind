@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { EXPERTS_DATA } from '../data/expertsData';
 import { Expert, ExpertSession, Product } from '../types';
 import { ExpertChatModal } from './ExpertChatModal';
@@ -8,19 +8,31 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Users, Star, MessageSquare, Video, Phone, ShieldCheck, 
   Sparkles, Clock, Search, Filter, Calendar, CheckCircle2, 
-  Award, ArrowRight, UserCheck, Zap, ChevronRight, VideoOff, MessageCircle
+  Award, ArrowRight, UserCheck, Zap, ChevronRight, VideoOff, 
+  MessageCircle, FileText, Check, Layers, HelpCircle
 } from 'lucide-react';
+import { WiseBookmarkIcon } from './WiseBookmarkIcon';
 
 interface ExpertHubProps {
   productsCatalog?: Product[];
+  onProductSelect?: (product: Product) => void;
 }
 
-export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [] }) => {
+export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [], onProductSelect }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [onlyOnline, setOnlyOnline] = useState<boolean>(false);
   const [activeExpertForChat, setActiveExpertForChat] = useState<Expert | null>(null);
   const [activeExpertForBooking, setActiveExpertForBooking] = useState<Expert | null>(null);
   const [showApplyModal, setShowApplyModal] = useState<boolean>(false);
+  const [showAuditModal, setShowAuditModal] = useState<boolean>(false);
+
+  // Quick Audit State
+  const [auditDeviceName, setAuditDeviceName] = useState('');
+  const [auditBudget, setAuditBudget] = useState('');
+  const [auditNotes, setAuditNotes] = useState('');
+  const [auditSuccess, setAuditSuccess] = useState(false);
+
   const [userSessions, setUserSessions] = useState<ExpertSession[]>([
     {
       id: 'sess-demo-1',
@@ -48,67 +60,85 @@ export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [] }) =>
     'Custom PC Building'
   ];
 
-  const filteredExperts = EXPERTS_DATA.filter((expert) => {
-    const matchesSearch = 
-      expert.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      expert.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      expert.specialties.some(s => s.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      expert.bio.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredExperts = useMemo(() => {
+    return EXPERTS_DATA.filter((expert) => {
+      const matchesSearch = 
+        expert.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        expert.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        expert.specialties.some(s => s.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        expert.bio.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        expert.featuredGear.some(g => g.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    if (!matchesSearch) return false;
-
-    if (selectedCategory === 'All') return true;
-    return expert.specialties.some(s => s.toLowerCase().includes(selectedCategory.toLowerCase()));
-  });
+      if (!matchesSearch) return false;
+      if (onlyOnline && !expert.isOnline) return false;
+      if (selectedCategory === 'All') return true;
+      return expert.specialties.some(s => s.toLowerCase().includes(selectedCategory.toLowerCase()));
+    });
+  }, [searchQuery, onlyOnline, selectedCategory]);
 
   const handleBookingConfirmed = (newSession: ExpertSession) => {
     setUserSessions(prev => [newSession, ...prev]);
+    setActiveTabSection('sessions');
+  };
+
+  const handleSubmitAudit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!auditDeviceName.trim()) return;
+    setAuditSuccess(true);
+    setTimeout(() => {
+      setAuditSuccess(false);
+      setShowAuditModal(false);
+      setAuditDeviceName('');
+      setAuditBudget('');
+      setAuditNotes('');
+    }, 2200);
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10">
+      
       {/* Header Banner */}
-      <div className="relative overflow-hidden bg-slate-900 rounded-3xl text-white p-8 sm:p-12 border border-slate-800 shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-indigo-500/20 via-cyan-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-10 -left-10 w-80 h-80 bg-gradient-to-tr from-cyan-500/15 via-primary/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#090D16] via-[#12182B] to-[#1E293B] rounded-3xl text-white p-6 sm:p-10 border border-slate-800 shadow-2xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-purple-500/20 via-indigo-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-10 -left-10 w-80 h-80 bg-gradient-to-tr from-amber-500/15 via-cyan-500/10 to-transparent rounded-full blur-2xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
-          <div className="max-w-2xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-cyan-300 text-[10px] font-black uppercase tracking-widest">
-              <ShieldCheck className="h-3.5 w-3.5 text-cyan-400" />
+          <div className="max-w-2xl space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-300 text-[10px] font-black uppercase tracking-widest">
+              <ShieldCheck className="h-3.5 w-3.5 text-purple-400" />
               <span>100% Sponsor-Free Hardware Council</span>
             </div>
             <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight">
-              Talk 1:1 with Verified Tech Experts & Reviewers.
+              Direct 1:1 Consultations with Verified Tech Reviewers.
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 font-semibold leading-relaxed">
-              Connect directly with experienced hardware engineers, acoustic specialists, and veteran reviewers. Ask spec questions in 1:1 live chat, video consultations, or request custom build audits in Indian Rupees (₹).
+            <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed">
+              Connect directly with veteran hardware engineers, acoustic testers, and benchmark reviewers. Ask raw spec dilemmas in instant 1:1 chat, 1:1 HD video calls, or request custom PC build audits in Indian Rupees (₹).
             </p>
           </div>
 
           {/* Action Stats Block */}
-          <div className="flex flex-wrap sm:flex-nowrap gap-4 bg-slate-800/80 backdrop-blur-md p-6 rounded-2xl border border-slate-700/80 flex-shrink-0">
-            <div className="pr-6 border-r border-slate-700">
-              <span className="text-2xl sm:text-3xl font-black text-cyan-400 block">1,270+</span>
+          <div className="flex flex-wrap sm:flex-nowrap gap-4 bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border border-slate-800 flex-shrink-0">
+            <div className="pr-5 border-r border-slate-800">
+              <span className="text-2xl sm:text-3xl font-black text-purple-400 block">1,270+</span>
               <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mt-1">1:1 Calls Guided</span>
             </div>
             <div className="pl-2">
               <span className="text-2xl sm:text-3xl font-black text-amber-400 block">4.95 ★</span>
-              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mt-1">Average Satisfaction</span>
+              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mt-1">Satisfaction Score</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Tab Navigation (Directory vs My Consultations) */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200/80 pb-4">
-        <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+      {/* Main Tab Navigation (Directory vs My Consultations + Request Spec Audit CTA) */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+        <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#12182B] p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
           <button
             onClick={() => setActiveTabSection('directory')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
               activeTabSection === 'directory'
-                ? 'bg-slate-900 text-white shadow-md'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Users className="h-4 w-4" />
@@ -118,8 +148,8 @@ export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [] }) =>
             onClick={() => setActiveTabSection('sessions')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
               activeTabSection === 'sessions'
-                ? 'bg-slate-900 text-white shadow-md'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Calendar className="h-4 w-4" />
@@ -127,14 +157,24 @@ export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [] }) =>
           </button>
         </div>
 
-        {/* Apply CTA Button */}
-        <button
-          onClick={() => setShowApplyModal(true)}
-          className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-primary px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm"
-        >
-          <Award className="h-4 w-4 text-primary" />
-          <span>Apply as Verified Reviewer</span>
-        </button>
+        {/* Action CTAs */}
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setShowAuditModal(true)}
+            className="flex items-center gap-1.5 bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] text-white px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:opacity-95"
+          >
+            <FileText className="h-4 w-4 text-[#FBBF24]" />
+            <span>Request Spec Audit</span>
+          </button>
+
+          <button
+            onClick={() => setShowApplyModal(true)}
+            className="flex items-center gap-1.5 bg-white dark:bg-[#12182B] border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-[#1A223B] text-slate-800 dark:text-slate-200 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-xs"
+          >
+            <Award className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            <span>Apply as Reviewer</span>
+          </button>
+        </div>
       </div>
 
       {activeTabSection === 'directory' ? (
@@ -150,18 +190,32 @@ export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [] }) =>
                   placeholder="Search by name, spec topic, e.g. 'Thermal', 'Coding'..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-primary rounded-2xl pl-10 pr-4 py-3 text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none shadow-sm"
+                  className="w-full bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 focus:border-[#4F46E5] rounded-2xl pl-10 pr-4 py-3 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none shadow-sm"
                 />
               </div>
 
-              {/* Quick Status Count */}
-              <span className="text-xs font-bold text-slate-500">
-                Showing <strong className="text-slate-900">{filteredExperts.length}</strong> available hardware specialists
-              </span>
+              {/* Online Only Filter Toggle */}
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                <button
+                  onClick={() => setOnlyOnline(!onlyOnline)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                    onlyOnline
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-white dark:bg-[#111827] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  <span className={`h-2 w-2 rounded-full ${onlyOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                  <span>Available for Instant Chat</span>
+                </button>
+
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                  Showing <strong className="text-slate-900 dark:text-white">{filteredExperts.length}</strong> specialists
+                </span>
+              </div>
             </div>
 
             {/* Category Pills */}
-            <div className="flex flex-wrap gap-2 pt-2">
+            <div className="flex flex-wrap gap-2 pt-1">
               {categories.map((cat) => {
                 const isSelected = selectedCategory === cat;
                 return (
@@ -170,8 +224,8 @@ export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [] }) =>
                     onClick={() => setSelectedCategory(cat)}
                     className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer border ${
                       isSelected
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-sm'
+                        : 'bg-white dark:bg-[#111827] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                     }`}
                   >
                     {cat}
@@ -186,8 +240,8 @@ export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [] }) =>
             {filteredExperts.map((exp) => (
               <motion.div
                 key={exp.id}
-                whileHover={{ y: -5 }}
-                className="bg-white rounded-3xl border border-slate-200/80 shadow-sm hover:shadow-xl transition-all duration-300 p-6 flex flex-col justify-between space-y-6 relative overflow-hidden group"
+                whileHover={{ y: -4 }}
+                className="bg-white dark:bg-[#111827] rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 p-6 flex flex-col justify-between space-y-6 relative overflow-hidden group"
               >
                 {/* Header Info */}
                 <div className="space-y-4">
@@ -198,42 +252,42 @@ export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [] }) =>
                           src={exp.avatar}
                           alt={exp.name}
                           referrerPolicy="no-referrer"
-                          className="h-14 w-14 rounded-2xl object-cover border-2 border-slate-100 shadow-sm group-hover:border-primary/50 transition-colors"
+                          className="h-14 w-14 rounded-2xl object-cover border-2 border-slate-100 dark:border-slate-800 shadow-sm group-hover:border-purple-400 transition-colors"
                         />
                         {exp.isOnline && (
-                          <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-500 border-2 border-white" title="Online for instant 1:1 chat" />
+                          <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-500 border-2 border-white dark:border-[#111827] shadow-xs" title="Online for instant 1:1 chat" />
                         )}
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <h3 className="font-extrabold text-slate-900 text-base group-hover:text-primary transition-colors">{exp.name}</h3>
+                          <h3 className="font-extrabold text-slate-900 dark:text-white text-base group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{exp.name}</h3>
                         </div>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-primary bg-indigo-50 px-2 py-0.5 rounded-md inline-block mt-0.5 border border-indigo-100">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-md inline-block mt-0.5 border border-purple-200 dark:border-purple-800">
                           {exp.verifiedBadge}
                         </span>
                       </div>
                     </div>
 
                     {/* Rating badge */}
-                    <div className="bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl text-center flex-shrink-0">
-                      <div className="flex items-center gap-1 font-black text-xs text-amber-900">
+                    <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2.5 py-1 rounded-xl text-center flex-shrink-0">
+                      <div className="flex items-center gap-1 font-black text-xs text-amber-900 dark:text-amber-300">
                         <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                         <span>{exp.rating}</span>
                       </div>
-                      <span className="text-[9px] text-amber-700 font-bold block">{exp.consultationsCount} sessions</span>
+                      <span className="text-[9px] text-amber-700 dark:text-amber-400 font-bold block">{exp.consultationsCount} sessions</span>
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-500 font-semibold leading-relaxed line-clamp-2">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed line-clamp-2">
                     {exp.bio}
                   </p>
 
                   {/* Specialties Pills */}
                   <div className="space-y-1.5">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Core Hardware Focus:</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Hardware Focus:</span>
                     <div className="flex flex-wrap gap-1.5">
                       {exp.specialties.map((spec, i) => (
-                        <span key={i} className="text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200/60 px-2.5 py-1 rounded-lg">
+                        <span key={i} className="text-[10px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-[#1A223B] border border-slate-200/60 dark:border-slate-700 px-2.5 py-1 rounded-lg">
                           {spec}
                         </span>
                       ))}
@@ -241,24 +295,24 @@ export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [] }) =>
                   </div>
 
                   {/* Featured Gear benchmarked */}
-                  <div className="pt-2 border-t border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Daily Evaluated Gear:</span>
-                    <p className="text-[11px] font-bold text-slate-800 truncate">
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Benchmarked Rig / Gear:</span>
+                    <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">
                       {exp.featuredGear.join(' • ')}
                     </p>
                   </div>
                 </div>
 
                 {/* Footer Action Bar */}
-                <div className="pt-4 border-t border-slate-100 space-y-3">
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
                   <div className="flex justify-between items-center text-xs">
                     <div>
                       <span className="text-[10px] text-slate-400 font-extrabold uppercase block">Rate From</span>
-                      <strong className="text-slate-900 font-black text-sm">₹{exp.chatRateINR}</strong> <span className="text-slate-400 text-[10px]">/ chat</span>
+                      <strong className="text-slate-900 dark:text-white font-black text-sm">₹{exp.chatRateINR}</strong> <span className="text-slate-400 text-[10px]">/ chat</span>
                     </div>
                     <div className="text-right">
                       <span className="text-[10px] text-slate-400 font-extrabold uppercase block">Response Time</span>
-                      <span className="text-emerald-600 font-extrabold text-xs flex items-center gap-1 justify-end">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-xs flex items-center gap-1 justify-end">
                         <Zap className="h-3 w-3 fill-emerald-500" />
                         {exp.responseRate}
                       </span>
@@ -268,14 +322,14 @@ export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [] }) =>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setActiveExpertForChat(exp)}
-                      className="py-2.5 px-3 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+                      className="py-2.5 px-3 bg-slate-900 dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
                     >
-                      <MessageSquare className="h-3.5 w-3.5 text-cyan-400" />
+                      <MessageSquare className="h-3.5 w-3.5 text-[#37D0C0]" />
                       <span>Chat 1:1</span>
                     </button>
                     <button
                       onClick={() => setActiveExpertForBooking(exp)}
-                      className="py-2.5 px-3 bg-primary hover:bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+                      className="py-2.5 px-3 bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] hover:opacity-95 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
                     >
                       <Video className="h-3.5 w-3.5 text-white" />
                       <span>Book Call</span>
@@ -291,8 +345,8 @@ export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [] }) =>
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-xl font-extrabold text-slate-900">Your Scheduled Consultations</h3>
-              <p className="text-xs text-slate-500 font-semibold mt-0.5">Track upcoming video calls, chat history, and expert spec audit reports.</p>
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">Your Scheduled Consultations</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Track upcoming video calls, chat history, and expert spec audit reports.</p>
             </div>
           </div>
 
@@ -300,19 +354,19 @@ export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [] }) =>
             {userSessions.map((sess) => (
               <div
                 key={sess.id}
-                className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+                className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
               >
                 <div className="flex items-center gap-4">
-                  <img src={sess.expertAvatar} className="h-14 w-14 rounded-2xl object-cover border-2 border-primary/20" />
+                  <img src={sess.expertAvatar} className="h-14 w-14 rounded-2xl object-cover border-2 border-purple-500/20" />
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-md">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2.5 py-0.5 rounded-md">
                         {sess.status}
                       </span>
                       <span className="text-xs font-bold text-slate-400">• {sess.timeSlot}</span>
                     </div>
-                    <h4 className="font-extrabold text-slate-900 text-base">{sess.expertName}</h4>
-                    <p className="text-xs text-slate-600 font-semibold">{sess.topic}</p>
+                    <h4 className="font-extrabold text-slate-900 dark:text-white text-base">{sess.expertName}</h4>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">{sess.topic}</p>
                   </div>
                 </div>
 
@@ -322,9 +376,9 @@ export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [] }) =>
                       href={sess.meetingUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex-1 md:flex-initial px-5 py-3 bg-slate-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow"
+                      className="flex-1 md:flex-initial px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow"
                     >
-                      <Video className="h-4 w-4 text-cyan-400" />
+                      <Video className="h-4 w-4 text-[#37D0C0]" />
                       <span>Launch Video Call Room</span>
                     </a>
                   )}
@@ -333,7 +387,7 @@ export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [] }) =>
                       const exp = EXPERTS_DATA.find(e => e.id === sess.expertId) || EXPERTS_DATA[0];
                       setActiveExpertForChat(exp);
                     }}
-                    className="flex-1 md:flex-initial px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="flex-1 md:flex-initial px-5 py-3 bg-slate-100 dark:bg-[#12182B] hover:bg-slate-200 dark:hover:bg-[#1A223B] text-slate-800 dark:text-slate-200 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-800"
                   >
                     <MessageSquare className="h-4 w-4" />
                     <span>Open Chat</span>
@@ -341,6 +395,93 @@ export const ExpertHub: React.FC<ExpertHubProps> = ({ productsCatalog = [] }) =>
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Spec Audit Modal */}
+      {showAuditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <div className="h-9 w-9 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600">
+                  <FileText className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 dark:text-white text-base">Request Custom Spec Audit</h3>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase">Reviewed by Hardware Council in &lt; 2 hours</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAuditModal(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            {auditSuccess ? (
+              <div className="py-8 text-center space-y-3">
+                <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto" />
+                <h4 className="font-black text-slate-900 dark:text-white text-base">Spec Audit Request Received!</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+                  A verified hardware reviewer has been assigned. You'll receive a detailed thermal & price-to-performance breakdown shortly.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitAudit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Device / Build Target</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. MacBook Air M3 16GB vs ThinkPad E14"
+                    value={auditDeviceName}
+                    onChange={(e) => setAuditDeviceName(e.target.value)}
+                    required
+                    className="w-full bg-slate-50 dark:bg-[#0B101D] border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[#4F46E5]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Maximum Budget in ₹</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ₹85,000"
+                    value={auditBudget}
+                    onChange={(e) => setAuditBudget(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-[#0B101D] border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[#4F46E5]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Specific Questions / Concerns</label>
+                  <textarea
+                    rows={3}
+                    placeholder="e.g. Will this laptop throttle during 4K DaVinci Resolve rendering? Is 16GB RAM enough?"
+                    value={auditNotes}
+                    onChange={(e) => setAuditNotes(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-[#0B101D] border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[#4F46E5]"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAuditModal(false)}
+                    className="px-4 py-2.5 text-xs font-black uppercase text-slate-500 hover:text-slate-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer"
+                  >
+                    Submit for Review
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

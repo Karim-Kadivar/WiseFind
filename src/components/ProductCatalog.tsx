@@ -46,6 +46,8 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { SafeProductImage } from './SafeProductImage';
 import { WalkthroughTooltip } from './WalkthroughTooltip';
+import { WiseBookmarkIcon } from './WiseBookmarkIcon';
+import ProductQuickSpecsModal from './ProductQuickSpecsModal';
 
 interface ProductCatalogProps {
   products: Product[];
@@ -56,6 +58,7 @@ interface ProductCatalogProps {
   compareList: Product[];
   initialCategory?: string;
   onNavigateToCompare?: () => void;
+  onAskWiseBot?: (question: string) => void;
 }
 
 // Category icon mapper helper
@@ -89,7 +92,8 @@ export default function ProductCatalog({
   favorites,
   compareList,
   initialCategory = 'All',
-  onNavigateToCompare
+  onNavigateToCompare,
+  onAskWiseBot
 }: ProductCatalogProps) {
   // Primary Navigation and Display Mode
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
@@ -128,6 +132,8 @@ export default function ProductCatalog({
 
   // Quick Spec Modal (for instant hover / quick view without full page switch)
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [quickSpecSearch, setQuickSpecSearch] = useState<string>('');
+  const [quickSpecCopied, setQuickSpecCopied] = useState<boolean>(false);
 
   // Sync selectedCategory with initialCategory when prop updates
   useEffect(() => {
@@ -1151,14 +1157,17 @@ export default function ProductCatalog({
                         </div>
 
                         {/* Quick Spec Popover Button */}
-                        <div className="absolute bottom-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <div className="absolute bottom-2.5 right-2.5 opacity-90 group-hover:opacity-100 transition-opacity z-10">
                           <button
-                            onClick={() => setQuickViewProduct(prod)}
-                            className="bg-slate-900/80 hover:bg-slate-900 text-white p-2 rounded-xl text-xs font-black backdrop-blur-sm shadow-md transition-transform active:scale-95 cursor-pointer flex items-center gap-1"
-                            title="Quick Spec Sheet"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQuickViewProduct(prod);
+                            }}
+                            className="bg-slate-900/90 hover:bg-[#4F46E5] text-white px-2.5 py-1.5 rounded-xl text-xs font-black backdrop-blur-md shadow-lg transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 border border-white/20 hover:shadow-indigo-500/25"
+                            title="Open Deep Hardware Spec Sheet"
                           >
-                            <Eye className="h-3.5 w-3.5" />
-                            <span className="text-[10px]">Specs</span>
+                            <Sliders className="h-3.5 w-3.5 text-amber-300" />
+                            <span className="text-[11px]">Specs</span>
                           </button>
                         </div>
                       </div>
@@ -1183,8 +1192,24 @@ export default function ProductCatalog({
                             {prod.name}
                           </h4>
 
-                          {/* Key Specs Breakdown Matrix */}
-                          <div className="bg-slate-50 dark:bg-[#090D16] rounded-2xl p-3 border border-slate-200/70 dark:border-slate-800/70 space-y-1.5 mb-3">
+                          {/* Key Specs Breakdown Matrix with Quick View trigger */}
+                          <div 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQuickViewProduct(prod);
+                            }}
+                            className="bg-slate-50 dark:bg-[#090D16] rounded-2xl p-3 border border-slate-200/70 dark:border-slate-800/70 space-y-1.5 mb-3 cursor-pointer hover:border-[#4F46E5]/40 hover:bg-slate-100/80 dark:hover:bg-[#0E1528] transition-all group/specs relative"
+                            title="Click to open interactive specs matrix"
+                          >
+                            <div className="flex justify-between items-center pb-1 border-b border-slate-200/50 dark:border-slate-800/50">
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                                <Sliders className="h-2.5 w-2.5 text-indigo-500" />
+                                <span>Hardware Specs</span>
+                              </span>
+                              <span className="text-[9px] font-black text-[#4F46E5] dark:text-indigo-400 group-hover/specs:underline flex items-center gap-0.5">
+                                <span>View Deep Matrix</span>
+                              </span>
+                            </div>
                             {Object.entries(prod.specs).slice(0, 3).map(([key, value]) => (
                               <div key={key} className="flex justify-between items-center text-[11px]">
                                 <span className="text-slate-400 font-bold uppercase tracking-wider truncate max-w-[85px]">{key}:</span>
@@ -1210,19 +1235,30 @@ export default function ProductCatalog({
                           </div>
 
                           <div className="flex items-center gap-2">
-                            {/* Favorite Button */}
+                            {/* Quick Specs Action Button */}
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => setQuickViewProduct(prod)}
+                              className="p-2 rounded-xl border bg-slate-50 dark:bg-[#090D16] border-slate-200 dark:border-slate-800 hover:border-[#4F46E5] hover:text-[#4F46E5] text-slate-600 dark:text-slate-300 transition-all cursor-pointer shadow-2xs"
+                              title="Inspect Specs"
+                            >
+                              <Sliders className="h-3.5 w-3.5" />
+                            </motion.button>
+
+                            {/* Bookmark / Save Button with WiseBookmarkIcon */}
                             <motion.button
                               whileHover={{ scale: 1.08 }}
                               whileTap={{ scale: 0.92 }}
                               onClick={() => onToggleFavorite(prod)}
                               className={`p-2 rounded-xl border transition-all cursor-pointer ${
                                 isFavorite
-                                  ? 'bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800 text-red-500'
-                                  : 'bg-slate-50 dark:bg-[#090D16] border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-800 dark:hover:text-white'
+                                  ? 'bg-black border-purple-500/40 shadow-xs'
+                                  : 'bg-slate-50 dark:bg-[#090D16] border-slate-200 dark:border-slate-800 hover:border-slate-300'
                               }`}
-                              title={isFavorite ? 'Remove from wishlist' : 'Save to wishlist'}
+                              title={isFavorite ? 'Remove from Stash' : 'Bookmark to Stash'}
                             >
-                              <Heart className={`h-4 w-4 ${isFavorite ? 'fill-red-500' : ''}`} />
+                              <WiseBookmarkIcon size={16} active={isFavorite} />
                             </motion.button>
 
                             {/* Add to Compare Button */}
@@ -1334,12 +1370,17 @@ export default function ProductCatalog({
                           {prod.description}
                         </p>
 
-                        {/* Specs Pill Badges */}
+                        {/* Specs Pill Badges with Quick View trigger */}
                         <div className="flex flex-wrap gap-1.5">
                           {Object.entries(prod.specs).slice(0, 4).map(([key, val]) => (
-                            <span key={key} className="text-[10px] font-bold bg-slate-100 dark:bg-[#090D16] text-slate-600 dark:text-slate-300 px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <button 
+                              key={key} 
+                              onClick={() => setQuickViewProduct(prod)}
+                              className="text-[10px] font-bold bg-slate-100 hover:bg-indigo-50 dark:bg-[#090D16] dark:hover:bg-indigo-950/40 text-slate-600 dark:text-slate-300 hover:text-[#4F46E5] dark:hover:text-indigo-300 px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer text-left"
+                              title="Click to view full hardware specs"
+                            >
                               <strong className="text-slate-400">{key}:</strong> {val}
-                            </span>
+                            </button>
                           ))}
                         </div>
                       </div>
@@ -1359,23 +1400,36 @@ export default function ProductCatalog({
                         </div>
 
                         <div className="flex items-center gap-2">
+                          {/* Specs button */}
+                          <motion.button
+                            whileHover={{ scale: 1.04 }}
+                            whileTap={{ scale: 0.96 }}
+                            onClick={() => setQuickViewProduct(prod)}
+                            className="px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 text-slate-700 dark:text-slate-200 hover:text-[#4F46E5] dark:hover:text-indigo-300 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer"
+                            title="Inspect Hardware Specs"
+                          >
+                            <Sliders className="h-3.5 w-3.5 text-indigo-500" />
+                            <span>Specs</span>
+                          </motion.button>
+
+                          {/* Bookmark button with WiseBookmarkIcon */}
                           <motion.button
                             whileHover={{ scale: 1.08 }}
                             whileTap={{ scale: 0.92 }}
                             onClick={() => onToggleFavorite(prod)}
-                            className={`p-2 rounded-xl border cursor-pointer ${
+                            className={`p-2 rounded-xl border transition-all cursor-pointer ${
                               isFavorite
-                                ? 'bg-red-50 dark:bg-red-950/50 border-red-200 text-red-500'
-                                : 'bg-slate-50 dark:bg-[#090D16] border-slate-200 dark:border-slate-800 text-slate-400'
+                                ? 'bg-black border-purple-500/40 shadow-xs'
+                                : 'bg-slate-50 dark:bg-[#090D16] border-slate-200 dark:border-slate-800 text-slate-400 hover:border-slate-300'
                             }`}
-                            title="Favorite"
+                            title={isFavorite ? 'Remove from Stash' : 'Bookmark to Stash'}
                           >
-                            <Heart className={`h-4 w-4 ${isFavorite ? 'fill-red-500' : ''}`} />
+                            <WiseBookmarkIcon size={16} active={isFavorite} />
                           </motion.button>
 
                           <button
                             onClick={() => onAddToCompare(prod)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 border cursor-pointer ${
+                            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 border cursor-pointer transition-all ${
                               isInCompare
                                 ? 'bg-emerald-500 border-emerald-500 text-white'
                                 : 'bg-white dark:bg-[#090D16] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:border-[#4F46E5]'
@@ -1487,124 +1541,27 @@ export default function ProductCatalog({
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* 9. QUICK SPECS MODAL POPOVER (Interactive Quick View) */}
+      {/* 9. ULTIMATE PRODUCT SPECS MODAL (Deep Interactive Hardware Matrix) */}
       {/* ------------------------------------------------------------- */}
       <AnimatePresence>
         {quickViewProduct && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-[100] animate-fade-in">
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-[#0E1322] border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative text-slate-900 dark:text-slate-100 max-h-[90vh] flex flex-col"
-            >
-              {/* Modal Header Banner */}
-              <div className="bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] p-5 text-white relative">
-                <button
-                  onClick={() => setQuickViewProduct(null)}
-                  className="absolute top-4 right-4 p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-white/20 rounded-md">
-                    {quickViewProduct.category}
-                  </span>
-                  <span className="text-xs font-bold text-white/80">{quickViewProduct.brand}</span>
-                </div>
-                <h3 className="text-lg sm:text-xl font-black">{quickViewProduct.name}</h3>
-                <div className="flex items-center gap-3 mt-2">
-                  <span className="text-xl font-black">₹{quickViewProduct.price.toLocaleString('en-IN')}</span>
-                  <span className="text-xs font-black bg-white/20 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                    ⚡ AI Match Score: {quickViewProduct.aiScore}/100
-                  </span>
-                </div>
-              </div>
-
-              {/* Modal Body Specs Grid */}
-              <div className="p-5 overflow-y-auto space-y-4">
-                {/* Description */}
-                <div>
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Overview</span>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{quickViewProduct.description}</p>
-                </div>
-
-                {/* Technical Specifications */}
-                <div>
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Verified Specs</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 dark:bg-[#090D16] p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
-                    {Object.entries(quickViewProduct.specs).map(([k, v]) => (
-                      <div key={k} className="text-xs">
-                        <span className="text-slate-400 font-bold uppercase text-[9px] block">{k}</span>
-                        <span className="font-extrabold text-slate-800 dark:text-slate-200">{v}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Pros & Cons */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {quickViewProduct.pros && quickViewProduct.pros.length > 0 && (
-                    <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/80 rounded-2xl p-3">
-                      <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block mb-1">Strengths</span>
-                      <ul className="text-xs space-y-1 text-slate-700 dark:text-slate-300">
-                        {quickViewProduct.pros.slice(0, 3).map((p, i) => (
-                          <li key={i} className="flex items-start gap-1">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                            <span>{p}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {quickViewProduct.cons && quickViewProduct.cons.length > 0 && (
-                    <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-800/80 rounded-2xl p-3">
-                      <span className="text-[10px] font-black text-rose-700 dark:text-rose-400 uppercase tracking-wider block mb-1">Considerations</span>
-                      <ul className="text-xs space-y-1 text-slate-700 dark:text-slate-300">
-                        {quickViewProduct.cons.slice(0, 3).map((c, i) => (
-                          <li key={i} className="flex items-start gap-1">
-                            <X className="h-3.5 w-3.5 text-rose-500 shrink-0 mt-0.5" />
-                            <span>{c}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="p-4 bg-slate-50 dark:bg-[#090D16] border-t border-slate-200 dark:border-slate-800 flex justify-between items-center">
-                <button
-                  onClick={() => onToggleFavorite(quickViewProduct)}
-                  className="flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                >
-                  <Heart className={`h-4 w-4 ${favorites.includes(quickViewProduct.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
-                  <span>{favorites.includes(quickViewProduct.id) ? 'Saved' : 'Wishlist'}</span>
-                </button>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => onAddToCompare(quickViewProduct)}
-                    className="flex items-center gap-1.5 text-xs font-black px-3.5 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-300 cursor-pointer"
-                  >
-                    <BarChart2 className="h-3.5 w-3.5" />
-                    <span>Compare</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      onProductClick(quickViewProduct);
-                      setQuickViewProduct(null);
-                    }}
-                    className="px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] text-white shadow-md hover:opacity-95 cursor-pointer"
-                  >
-                    Open Full Details
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
+          <ProductQuickSpecsModal
+            product={quickViewProduct}
+            onClose={() => {
+              setQuickViewProduct(null);
+              setQuickSpecSearch('');
+            }}
+            onProductClick={(p) => {
+              onProductClick(p);
+              setQuickViewProduct(null);
+            }}
+            onAddToCompare={onAddToCompare}
+            onToggleFavorite={onToggleFavorite}
+            isFavorite={favorites.includes(quickViewProduct.id)}
+            isInCompare={compareList.some(item => item.id === quickViewProduct.id)}
+            allProducts={products}
+            onAskWiseBot={onAskWiseBot}
+          />
         )}
       </AnimatePresence>
     </div>

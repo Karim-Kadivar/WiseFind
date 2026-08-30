@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 export type Theme = 'light' | 'dark';
 
@@ -18,22 +18,61 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return 'dark';
   });
 
+  const isInitialMount = useRef(true);
+
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
+
+    // Trigger cross-fade transition class on subsequent theme switches
+    if (!isInitialMount.current) {
+      root.classList.add('theme-transitioning');
+      const timer = setTimeout(() => {
+        root.classList.remove('theme-transitioning');
+      }, 400);
+      
+      if (theme === 'dark') {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+      localStorage.setItem('wisefind_theme', theme);
+      
+      return () => {
+        clearTimeout(timer);
+      };
     } else {
-      root.classList.remove('dark');
+      isInitialMount.current = false;
+      if (theme === 'dark') {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+      localStorage.setItem('wisefind_theme', theme);
     }
-    localStorage.setItem('wisefind_theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {
-    setThemeState(prev => (prev === 'light' ? 'dark' : 'light'));
+    const applyToggle = () => {
+      setThemeState(prev => (prev === 'light' ? 'dark' : 'light'));
+    };
+
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      (document as any).startViewTransition(applyToggle);
+    } else {
+      applyToggle();
+    }
   };
 
   const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
+    const applySet = () => {
+      setThemeState(newTheme);
+    };
+
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      (document as any).startViewTransition(applySet);
+    } else {
+      applySet();
+    }
   };
 
   return (

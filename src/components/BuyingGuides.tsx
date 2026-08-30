@@ -39,6 +39,102 @@ export default function BuyingGuides({
   const [quizPriority, setQuizPriority] = useState<string>('Battery & Display');
   const [quizResultGuide, setQuizResultGuide] = useState<BuyingGuide | null>(null);
 
+  // Interactive Red Flag / Marketing Trap Map per category
+  const MARKETING_TRAPS_MAP: Record<string, Array<{ trap: string; reality: string; advice: string; severity: 'high' | 'medium' | 'critical' }>> = {
+    'Smartphones': [
+      {
+        trap: 'Virtual RAM Expansion (e.g., "16GB RAM" via 8GB+8GB Virtual)',
+        reality: 'Uses slow flash storage as swap memory. Up to 100x slower than true LPDDR5X RAM and wears down internal NAND storage.',
+        advice: 'Only look at physical hardware RAM. 8GB physical RAM is plenty for 99% of users.',
+        severity: 'high'
+      },
+      {
+        trap: '2MP Depth / 2MP Macro Sensor Padding (The "Quad Camera" Myth)',
+        reality: 'Low-resolution filler sensors added solely to advertise 3 or 4 cameras on marketing posters.',
+        advice: 'Prioritize a large primary sensor with OIS (Optical Image Stabilization) and an Ultra-wide over multi-lens filler setups.',
+        severity: 'critical'
+      },
+      {
+        trap: '4000+ Peak Nits Brightness Claims',
+        reality: 'Peak brightness only activates for a 1% screen window under direct sunlight with auto-brightness enabled for a few seconds.',
+        advice: 'Check "High Brightness Mode (HBM)" which is typically 1200-1600 nits across the full screen.',
+        severity: 'medium'
+      },
+      {
+        trap: 'Mega-Watt Charging with Missing Charger in Box',
+        reality: 'Advertised 80W/100W speeds often require buying a ₹2,500+ proprietary adapter and special high-amp cable.',
+        advice: 'Verify whether the fast-charging adapter and USB cable are included in the retail packaging.',
+        severity: 'high'
+      }
+    ],
+    'Laptops': [
+      {
+        trap: 'eMMC Storage vs NVMe SSD in Sub-₹35,000 Laptops',
+        reality: 'eMMC speeds top out around 150-250 MB/s, causing system freezes and sluggish boot times compared to NVMe SSDs (2,000+ MB/s).',
+        advice: 'Never purchase a laptop with eMMC storage. Always ensure PCIe NVMe M.2 SSD.',
+        severity: 'critical'
+      },
+      {
+        trap: 'TGP (Total Graphics Power) throttling on Gaming GPUs',
+        reality: 'An RTX 4060 limited to 45W TGP will perform significantly worse than an RTX 4050 running at 95W-105W TGP.',
+        advice: 'Always verify the wattage (TGP) of the dedicated GPU before buying gaming machines.',
+        severity: 'high'
+      },
+      {
+        trap: 'Soldered Single-Channel RAM with No Expansion Slot',
+        reality: '8GB non-upgradable RAM cuts graphics bandwidth in half and renders the laptop obsolete within 2-3 years.',
+        advice: 'Look for dual-channel memory or at least 1 user-accessible SO-DIMM slot.',
+        severity: 'high'
+      }
+    ],
+    'Headphones': [
+      {
+        trap: 'Hi-Res Audio Sticker with Standard SBC / AAC Codecs',
+        reality: 'The yellow Hi-Res Audio sticker only means hardware drivers can output 40kHz; without LDAC or LHDC Bluetooth codecs, sound is compressed.',
+        advice: 'Ensure your smartphone supports LDAC or aptX Adaptive if buying high-end wireless headphones.',
+        severity: 'medium'
+      },
+      {
+        trap: 'Exaggerated 60-Hour Battery with ANC and High Volume Disabled',
+        reality: 'Advertised numbers are measured at 50% volume with Active Noise Cancellation turned OFF.',
+        advice: 'Expect around 50-60% of advertised runtime when ANC is actively running on daily commutes.',
+        severity: 'medium'
+      }
+    ],
+    'Smartwatches': [
+      {
+        trap: 'Calling Bluetooth Trackers "Smartwatches" (RTOS vs WearOS/watchOS)',
+        reality: 'Sub-₹3,000 trackers cannot install third-party apps, reply to messages, or support contactless payments.',
+        advice: 'If you want standalone apps and rich messaging, look for WearOS or Apple Watch.',
+        severity: 'high'
+      }
+    ]
+  };
+
+  const [copiedChecklist, setCopiedChecklist] = useState<boolean>(false);
+  const [activeGuideSubTab, setActiveGuideSubTab] = useState<'checklist' | 'traps' | 'ranges' | 'jargon'>('checklist');
+
+  // Handle Exporting the Purchasing Checklist
+  const handleExportChecklist = () => {
+    if (!selectedGuide) return;
+    const text = `📋 WiseFind Hardware Purchasing Checklist: ${selectedGuide.title}\n\n` +
+      `Category: ${selectedGuide.category}\n` +
+      `Editor's Advice: ${selectedGuide.editorsAdvice}\n\n` +
+      `Essential Hardware Verification Points:\n` +
+      selectedGuide.keyFactors.map((f, i) => `[ ] ${i + 1}. ${f.title}: ${f.desc}`).join('\n') +
+      `\n\nPrice Tier Spectrum:\n` +
+      selectedGuide.budgetRanges.map(b => `• ${b.range}: ${b.advice}`).join('\n') +
+      `\n\nVerified by WiseFind Intelligence Core`;
+
+    try {
+      navigator.clipboard.writeText(text);
+      setCopiedChecklist(true);
+      setTimeout(() => setCopiedChecklist(false), 3000);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   // Editorial Shortlists
   const trending = products.filter(p => p.isTrending);
   const editorsChoice = products.filter(p => p.isEditorChoice);
@@ -366,24 +462,35 @@ export default function BuyingGuides({
           {selectedGuide ? (
             <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-8 animate-fade-in">
               
-              {/* Header Title with Audio Simulator & Sponsor-Free Badge */}
+              {/* Header Title with Audio Simulator, Copy Checklist & Sponsor-Free Badge */}
               <div className="border-b border-slate-100 dark:border-slate-800 pb-6">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
                   <span className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest bg-purple-50 dark:bg-purple-950/60 px-2.5 py-1 rounded-lg border border-purple-200 dark:border-purple-800">
                     {selectedGuide.category} Masterclass
                   </span>
 
-                  <button
-                    onClick={handleToggleAudio}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border ${
-                      isPlayingAudio
-                        ? 'bg-rose-500 text-white border-rose-600 animate-pulse'
-                        : 'bg-slate-100 dark:bg-[#12182B] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    {isPlayingAudio ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5 text-[#4F46E5]" />}
-                    <span>{isPlayingAudio ? 'Stop Audio' : 'Listen to 60s Audio Brief'}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleExportChecklist}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider bg-slate-100 dark:bg-[#12182B] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
+                    >
+                      {copiedChecklist ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Download className="h-3.5 w-3.5 text-[#4F46E5]" />}
+                      <span>{copiedChecklist ? 'Checklist Copied!' : 'Export Checklist'}</span>
+                    </button>
+
+                    <button
+                      onClick={handleToggleAudio}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border ${
+                        isPlayingAudio
+                          ? 'bg-rose-500 text-white border-rose-600 animate-pulse'
+                          : 'bg-slate-100 dark:bg-[#12182B] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      {isPlayingAudio ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5 text-[#4F46E5]" />}
+                      <span>{isPlayingAudio ? 'Stop Audio' : '60s Audio Brief'}</span>
+                    </button>
+                  </div>
                 </div>
 
                 <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white leading-tight mt-2">
@@ -392,98 +499,173 @@ export default function BuyingGuides({
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium leading-relaxed">
                   {selectedGuide.description}
                 </p>
-              </div>
 
-              {/* Interactive Purchasing Checklist (Checkable Factors) */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <GraduationCap className="h-4 w-4 text-[#4F46E5]" />
-                    Interactive Pre-Purchase Spec Checklist
-                  </h4>
-                  <span className="text-[10px] text-slate-400 font-bold">
-                    {Object.values(checkedFactors).filter(Boolean).length} / {selectedGuide.keyFactors.length} verified
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {selectedGuide.keyFactors.map((factor, fidx) => {
-                    const factorKey = `${selectedGuide.id}-factor-${fidx}`;
-                    const isChecked = !!checkedFactors[factorKey];
-
+                {/* Sub-tab Pill Navigation */}
+                <div className="flex items-center gap-2 overflow-x-auto pt-4 scrollbar-none">
+                  {[
+                    { id: 'checklist', label: 'Spec Checklist', icon: GraduationCap },
+                    { id: 'traps', label: 'Marketing Red Flags', icon: ShieldAlert },
+                    { id: 'ranges', label: 'Price Tiers', icon: Sliders },
+                    { id: 'jargon', label: 'Jargon Buster', icon: HelpCircle }
+                  ].map(tab => {
+                    const Icon = tab.icon;
+                    const isActive = activeGuideSubTab === tab.id;
                     return (
-                      <div
-                        key={fidx}
-                        onClick={() => handleToggleFactor(factorKey)}
-                        className={`rounded-2xl p-4 border transition-all cursor-pointer select-none flex items-start gap-3 ${
-                          isChecked
-                            ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
-                            : 'bg-slate-50 dark:bg-[#0B101D] border-slate-200/80 dark:border-slate-800 hover:border-slate-300'
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveGuideSubTab(tab.id as any)}
+                        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer border ${
+                          isActive
+                            ? 'bg-[#4F46E5] text-white border-[#4F46E5] shadow-xs'
+                            : 'bg-slate-50 dark:bg-[#0B101D] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:text-slate-900 dark:hover:text-white'
                         }`}
                       >
-                        <div className="mt-0.5 flex-shrink-0">
-                          {isChecked ? (
-                            <CheckSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                          ) : (
-                            <Square className="h-4 w-4 text-slate-400" />
-                          )}
-                        </div>
-                        <div>
-                          <h5 className={`font-black text-xs ${isChecked ? 'text-emerald-900 dark:text-emerald-300 line-through opacity-80' : 'text-slate-900 dark:text-white'}`}>
-                            {factor.title}
-                          </h5>
-                          <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-1 leading-relaxed font-medium">
-                            {factor.desc}
-                          </p>
-                        </div>
-                      </div>
+                        <Icon className="h-3.5 w-3.5" />
+                        <span>{tab.label}</span>
+                      </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Segment & Rupee Tier Advice */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sliders className="h-4 w-4 text-cyan-500" />
-                  Rupee Price Tier Spectrum & Expectations
-                </h4>
-                <div className="space-y-2">
-                  {selectedGuide.budgetRanges.map((br, bidx) => (
-                    <div
-                      key={bidx}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50/80 dark:bg-[#0B101D] border border-slate-200/80 dark:border-slate-800 rounded-2xl gap-3"
-                    >
-                      <span className="text-xs font-black text-slate-900 dark:text-white sm:w-1/3">
-                        {br.range}
-                      </span>
-                      <span className="text-xs text-slate-600 dark:text-slate-400 sm:w-2/3 font-medium leading-relaxed">
-                        {br.advice}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* TAB 1: Interactive Purchasing Checklist (Checkable Factors) */}
+              {activeGuideSubTab === 'checklist' && (
+                <div className="space-y-4 animate-fade-in">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <GraduationCap className="h-4 w-4 text-[#4F46E5]" />
+                      Essential Hardware Verification Checklist
+                    </h4>
+                    <span className="text-[10px] text-slate-400 font-bold">
+                      {Object.values(checkedFactors).filter(Boolean).length} / {selectedGuide.keyFactors.length} verified
+                    </span>
+                  </div>
 
-              {/* Jargon Buster definitions */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <HelpCircle className="h-4 w-4 text-[#37D0C0]" />
-                  Jargon Buster (Decrypted Terminology)
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {selectedGuide.jargonBuster.map((jb, jidx) => (
-                    <div key={jidx} className="bg-slate-50 dark:bg-[#0B101D] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-3.5">
-                      <span className="font-extrabold text-slate-900 dark:text-white text-xs block text-purple-600 dark:text-purple-400">
-                        ✦ {jb.term}
-                      </span>
-                      <span className="text-slate-600 dark:text-slate-400 text-xs block mt-1 leading-relaxed font-medium">
-                        {jb.explanation}
-                      </span>
-                    </div>
-                  ))}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {selectedGuide.keyFactors.map((factor, fidx) => {
+                      const factorKey = `${selectedGuide.id}-factor-${fidx}`;
+                      const isChecked = !!checkedFactors[factorKey];
+
+                      return (
+                        <div
+                          key={fidx}
+                          onClick={() => handleToggleFactor(factorKey)}
+                          className={`rounded-2xl p-4 border transition-all cursor-pointer select-none flex items-start gap-3 ${
+                            isChecked
+                              ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
+                              : 'bg-slate-50 dark:bg-[#0B101D] border-slate-200/80 dark:border-slate-800 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="mt-0.5 flex-shrink-0">
+                            {isChecked ? (
+                              <CheckSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                            ) : (
+                              <Square className="h-4 w-4 text-slate-400" />
+                            )}
+                          </div>
+                          <div>
+                            <h5 className={`font-black text-xs ${isChecked ? 'text-emerald-900 dark:text-emerald-300 line-through opacity-80' : 'text-slate-900 dark:text-white'}`}>
+                              {factor.title}
+                            </h5>
+                            <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-1 leading-relaxed font-medium">
+                              {factor.desc}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* TAB 2: Red Flag Marketing Trap Scanner */}
+              {activeGuideSubTab === 'traps' && (
+                <div className="space-y-4 animate-fade-in">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-xs font-black text-rose-500 uppercase tracking-wider flex items-center gap-1.5">
+                      <ShieldAlert className="h-4 w-4 text-rose-500" />
+                      Marketing Traps & Gimmicks to Avoid
+                    </h4>
+                    <span className="text-[10px] text-slate-400 font-bold">
+                      Zero-Sponsor Unbiased Analysis
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {(MARKETING_TRAPS_MAP[selectedGuide.category] || MARKETING_TRAPS_MAP['Smartphones']).map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 rounded-2xl bg-rose-50/40 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/40 space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black text-rose-800 dark:text-rose-300 flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-rose-500"></span>
+                            <span>{item.trap}</span>
+                          </span>
+                          <span className="text-[9px] font-black uppercase text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-950 px-2 py-0.5 rounded">
+                            {item.severity} Risk
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                          <b className="text-slate-900 dark:text-white">The Reality:</b> {item.reality}
+                        </p>
+                        <div className="p-2.5 rounded-xl bg-white dark:bg-[#0B101D] border border-rose-100 dark:border-slate-800 text-[11px] text-emerald-800 dark:text-emerald-300 font-bold flex items-center gap-1.5">
+                          <span>💡 WiseFind Advice: {item.advice}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: Segment & Rupee Tier Advice */}
+              {activeGuideSubTab === 'ranges' && (
+                <div className="space-y-3 animate-fade-in">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sliders className="h-4 w-4 text-cyan-500" />
+                    Rupee Price Tier Spectrum & Expectations
+                  </h4>
+                  <div className="space-y-2.5">
+                    {selectedGuide.budgetRanges.map((br, bidx) => (
+                      <div
+                        key={bidx}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50/80 dark:bg-[#0B101D] border border-slate-200/80 dark:border-slate-800 rounded-2xl gap-3"
+                      >
+                        <span className="text-xs font-black text-slate-900 dark:text-white sm:w-1/3 flex items-center gap-1.5">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#4F46E5]"></span>
+                          <span>{br.range}</span>
+                        </span>
+                        <span className="text-xs text-slate-600 dark:text-slate-400 sm:w-2/3 font-medium leading-relaxed">
+                          {br.advice}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: Jargon Buster definitions */}
+              {activeGuideSubTab === 'jargon' && (
+                <div className="space-y-3 animate-fade-in">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <HelpCircle className="h-4 w-4 text-[#37D0C0]" />
+                    Jargon Buster (Decrypted Terminology)
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {selectedGuide.jargonBuster.map((jb, jidx) => (
+                      <div key={jidx} className="bg-slate-50 dark:bg-[#0B101D] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-3.5 space-y-1">
+                        <span className="font-extrabold text-slate-900 dark:text-white text-xs block text-purple-600 dark:text-purple-400">
+                          ✦ {jb.term}
+                        </span>
+                        <span className="text-slate-600 dark:text-slate-400 text-xs block leading-relaxed font-medium">
+                          {jb.explanation}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Top Curated Hardware Picks for this guide */}
               {matchingProducts.length > 0 && (

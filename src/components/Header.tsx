@@ -86,7 +86,7 @@ export default function Header({
     { id: 'experts', label: '1:1 Experts', icon: Users },
     { id: 'guides', label: 'Guides', icon: BookOpen },
     { id: 'wisebot', label: 'WiseBot AI', icon: Bot },
-    { id: 'bookmarks', label: 'Bookmarks', icon: (props: any) => <WiseBookmarkIcon size={14} active={props?.isActive} className={props?.className} />, count: favoritesCount },
+    { id: 'bookmarks', label: 'Bookmarks', icon: WiseBookmarkIcon, count: favoritesCount },
   ];
 
   return (
@@ -234,7 +234,11 @@ export default function Header({
                       : 'text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-white dark:hover:bg-[#1A223B] border-transparent hover:border-slate-200 dark:hover:border-slate-700/80 shadow-none'
                   }`}
                 >
-                  <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-400'}`} isActive={isActive} />
+                  {item.id === 'bookmarks' ? (
+                    <WiseBookmarkIcon size={14} active={isActive} className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-400'}`} />
+                  ) : (
+                    <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-400'}`} />
+                  )}
                   <span>{item.label}</span>
                   {item.count !== undefined && item.count > 0 && (
                     <span className={`ml-0.5 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full shadow-xs ${

@@ -36,13 +36,46 @@ body {
   font-family: var(--font-sans);
   background-color: #F8FAFC;
   color: #0F172A;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1), color 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 100vh;
 }
 
 html.dark body {
   background-color: #090D16;
   color: #F8FAFC;
+}
+
+/* Global Dark/Light mode cross-fade transition */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              fill 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              stroke 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition-delay: 0s !important;
+}
+
+/* Modern View Transition API smooth cross-fade */
+::view-transition-old(root) {
+  animation: 0.35s cubic-bezier(0.4, 0, 0.2, 1) both themeFadeOut;
+}
+
+::view-transition-new(root) {
+  animation: 0.35s cubic-bezier(0.4, 0, 0.2, 1) both themeFadeIn;
+}
+
+@keyframes themeFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes themeFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Custom Gradients and Glows */

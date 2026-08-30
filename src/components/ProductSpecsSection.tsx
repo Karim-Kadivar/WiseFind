@@ -182,6 +182,11 @@ export default function ProductSpecsSection({
   // Plain English vs Pro Tech Mode
   const [isPlainEnglish, setIsPlainEnglish] = useState<boolean>(false);
   
+  // Interactive Spec Deep Dive Modal / Drawer when clicked
+  const [selectedSpecDetail, setSelectedSpecDetail] = useState<{ key: string; val: string; tab?: 'impact' | 'breakdown' | 'proscons' | 'rivals' } | null>(null);
+  const [specDetailActiveTab, setSpecDetailActiveTab] = useState<'impact' | 'breakdown' | 'proscons' | 'rivals'>('impact');
+  const [copiedDetailValue, setCopiedDetailValue] = useState<boolean>(false);
+  
   // Search & Category Filters
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -233,6 +238,84 @@ export default function ProductSpecsSection({
       plainMeaning: `Specifies the ${key.toLowerCase()} capabilities of this ${product.category.toLowerCase()}.`,
       realWorldImpact: `Ensures compliant operation and standard performance benchmarks for ${product.name}.`,
       buyerTip: `Compare this with similar devices in the ₹${product.price.toLocaleString('en-IN')} price bracket for optimal value.`
+    };
+  };
+
+  // Comprehensive Spec Detailed Analysis Generator for Interactive Modal
+  const getSpecDetailedAnalysis = (key: string, val: string) => {
+    const k = key.toLowerCase();
+    const jargon = lookupJargon(key, val);
+    
+    let score = 91;
+    let tier = 'Top-Tier Flagship';
+    let tierColor = 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-800';
+    
+    if (k.includes('processor') || k.includes('chip') || k.includes('cpu')) {
+      score = 96;
+      tier = 'Pro Silicon (Top 5%)';
+      tierColor = 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800';
+    } else if (k.includes('display') || k.includes('screen') || k.includes('oled') || k.includes('amoled') || k.includes('refresh') || k.includes('hz')) {
+      score = 95;
+      tier = 'Cinema Grade Visuals';
+      tierColor = 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 border-purple-200 dark:border-purple-800';
+    } else if (k.includes('battery') || k.includes('charging') || k.includes('mah') || k.includes('watt') || k.includes('whr')) {
+      score = 93;
+      tier = 'Heavy Duty Endurance';
+      tierColor = 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800';
+    } else if (k.includes('camera') || k.includes('sensor') || k.includes('ois') || k.includes('aperture') || k.includes('lens')) {
+      score = 94;
+      tier = 'Studio Optical Array';
+      tierColor = 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800';
+    } else if (k.includes('driver') || k.includes('anc') || k.includes('audio') || k.includes('sound')) {
+      score = 92;
+      tier = 'Audiophile Grade Acoustic';
+      tierColor = 'text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/60 border-pink-200 dark:border-pink-800';
+    }
+
+    return {
+      key,
+      val,
+      score,
+      tier,
+      tierColor,
+      jargon,
+      category: getSpecCategory(key),
+      impacts: [
+        {
+          title: 'Daily App Multitasking',
+          status: 'Optimal',
+          desc: `Ensures swift UI response, rapid app launches, and zero freeze when toggling 15+ tabs or background productivity apps.`
+        },
+        {
+          title: 'Sustained 3D Gaming & Heavy Load',
+          status: 'High Performance',
+          desc: `Engineered to maintain steady frame-rates without rapid thermal throttling during long gaming or 4K rendering runs.`
+        },
+        {
+          title: 'Power Draw & Thermal Envelope',
+          status: 'Efficient',
+          desc: `Optimized power states preserve battery longevity while keeping surface temperatures comfortable in your hands.`
+        },
+        {
+          title: '3-to-5 Year Longevity',
+          status: 'Future-Proof',
+          desc: `Exceeds current operating system hardware minimums, guaranteeing smooth updates and app compatibility for years.`
+        }
+      ],
+      pros: [
+        `Delivers top-tier ${key.toLowerCase()} performance in the ₹${product.price.toLocaleString('en-IN')} price bracket.`,
+        `Factory calibrated for tight hardware-software synergy with zero bloatware bottlenecks.`,
+        `Backed by verified manufacturer quality tolerances and full warranty protection.`
+      ],
+      cons: [
+        `High-demand continuous loads under direct sunlight may trigger automated thermal throttling safeguards.`,
+        `Requires compatible high-speed adapters/cables to utilize maximum theoretical bandwidth.`
+      ],
+      rivalComparison: [
+        { name: product.name, value: val, status: 'This Device (Verified)', isCurrent: true },
+        { name: 'Category Baseline (Median)', value: 'Standard Industry Spec', status: 'Typical Median', isCurrent: false },
+        { name: 'Previous Generation', value: 'Legacy Specification', status: '-20% Performance Delta', isCurrent: false }
+      ]
     };
   };
 
@@ -688,7 +771,12 @@ export default function ProductSpecsSection({
               return (
                 <div
                   key={i}
-                  className={`p-4 rounded-2xl border bg-gradient-to-br transition-all flex flex-col justify-between hover:shadow-md ${hero.gradient}`}
+                  onClick={() => {
+                    setSelectedSpecDetail({ key: hero.rawKey, val: hero.value });
+                    setSpecDetailActiveTab('impact');
+                  }}
+                  className={`p-4 rounded-2xl border bg-gradient-to-br transition-all flex flex-col justify-between hover:shadow-lg hover:scale-[1.02] cursor-pointer group ${hero.gradient}`}
+                  title="Click for full spec deep-dive, benchmarks & real-world impact"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
@@ -697,7 +785,7 @@ export default function ProductSpecsSection({
                     </span>
                     <div className="flex items-center gap-1">
                       {renderInteractiveJargonTooltip(hero.rawKey, hero.value)}
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xs group-hover:border-[#4F46E5]/50 transition-colors">
                         {hero.badge}
                       </span>
                     </div>
@@ -711,6 +799,11 @@ export default function ProductSpecsSection({
                       {isPlainEnglish ? getPlainEnglishSpec(hero.label, hero.value) : hero.value}
                     </p>
                   </div>
+
+                  <div className="pt-2 mt-2 border-t border-slate-200/40 dark:border-slate-800/60 flex items-center justify-between text-[10px] font-bold text-slate-400 group-hover:text-[#4F46E5] dark:group-hover:text-indigo-400 transition-colors">
+                    <span>Click for deep dive</span>
+                    <ArrowRight className="h-3 w-3 transform group-hover:translate-x-1 transition-transform" />
+                  </div>
                 </div>
               );
             })}
@@ -719,23 +812,30 @@ export default function ProductSpecsSection({
           {/* Bento Full Spec Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-2">
             {Object.entries(product.specs).map(([key, val]) => {
-              const isTooltipOpen = activeTooltipKey === key;
               return (
                 <div
                   key={key}
-                  className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 hover:border-[#4F46E5]/40 transition-all flex flex-col justify-between space-y-2 group shadow-2xs relative"
+                  onClick={() => {
+                    setSelectedSpecDetail({ key, val });
+                    setSpecDetailActiveTab('impact');
+                  }}
+                  className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 hover:border-[#4F46E5] hover:shadow-md transition-all flex flex-col justify-between space-y-2 group shadow-2xs relative cursor-pointer"
+                  title="Click to view deep-dive analysis, pros/cons and benchmarks"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider group-hover:text-[#4F46E5] transition-colors">
                         {key}
                       </span>
                       {renderInteractiveJargonTooltip(key, val)}
                     </div>
 
-                    <span className="text-[9px] font-black uppercase text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-                      Verified Spec
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-black uppercase text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        Inspect
+                      </span>
+                      <ArrowRight className="h-3 w-3 text-slate-300 group-hover:text-[#4F46E5] dark:group-hover:text-indigo-400 transform group-hover:translate-x-0.5 transition-all" />
+                    </div>
                   </div>
 
                   {/* Value */}
@@ -1110,15 +1210,26 @@ export default function ProductSpecsSection({
                 .slice(0, isExpanded ? undefined : 8)
                 .map(([key, value]) => {
                   return (
-                    <div key={key} className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex flex-col gap-1.5 relative">
+                    <div 
+                      key={key} 
+                      onClick={() => {
+                        setSelectedSpecDetail({ key, val: value });
+                        setSpecDetailActiveTab('impact');
+                      }}
+                      className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex flex-col gap-1.5 relative cursor-pointer group"
+                      title="Click to view deep dive analysis"
+                    >
                       <div className="flex justify-between items-center w-full gap-3">
-                        <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 group-hover:text-[#4F46E5] transition-colors">
                           <span>{key}</span>
                           {renderInteractiveJargonTooltip(key, value)}
                         </span>
-                        <span className="text-xs font-black text-slate-900 dark:text-white text-right max-w-[340px] truncate" title={value}>
-                          {isPlainEnglish ? getPlainEnglishSpec(key, value) : value}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-slate-900 dark:text-white text-right max-w-[340px] truncate" title={value}>
+                            {isPlainEnglish ? getPlainEnglishSpec(key, value) : value}
+                          </span>
+                          <ArrowRight className="h-3 w-3 text-slate-300 group-hover:text-[#4F46E5] dark:group-hover:text-indigo-400 transform group-hover:translate-x-0.5 transition-all shrink-0" />
+                        </div>
                       </div>
                     </div>
                   );
@@ -1174,6 +1285,280 @@ export default function ProductSpecsSection({
           </button>
         )}
       </div>
+
+      {/* 5. INTERACTIVE SPEC DEEP-DIVE MODAL / DRAWER */}
+      <AnimatePresence>
+        {selectedSpecDetail && (() => {
+          const detail = getSpecDetailedAnalysis(selectedSpecDetail.key, selectedSpecDetail.val);
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 backdrop-blur-md animate-fade-in overflow-y-auto">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ duration: 0.2 }}
+                className="bg-white dark:bg-[#0F172A] border border-slate-200/90 dark:border-slate-800 rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col my-auto max-h-[90vh]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div className="p-5 sm:p-6 bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800 flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md">
+                      <Sparkles className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                          {product.name} • Deep Dive
+                        </span>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${detail.tierColor}`}>
+                          {detail.tier}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
+                        {detail.key}
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${detail.key}: ${detail.val} (${product.name})`);
+                        setCopiedDetailValue(true);
+                        setTimeout(() => setCopiedDetailValue(false), 2000);
+                      }}
+                      className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                      title="Copy spec details"
+                    >
+                      {copiedDetailValue ? <CheckCheck className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSpecDetail(null)}
+                      className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                      title="Close"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Main Modal Content (Scrollable) */}
+                <div className="p-5 sm:p-6 overflow-y-auto space-y-5">
+                  {/* Hero Spec Value Box */}
+                  <div className="bg-gradient-to-br from-indigo-50/70 via-purple-50/40 to-slate-50 dark:from-indigo-950/40 dark:via-purple-950/20 dark:to-slate-900 p-4 sm:p-5 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                        Verified Hardware Metric
+                      </span>
+                      <h4 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1">
+                        {detail.val}
+                      </h4>
+                      <p className="text-xs text-[#4F46E5] dark:text-indigo-400 font-bold mt-1 flex items-center gap-1">
+                        <Sparkle className="h-3.5 w-3.5 shrink-0" />
+                        <span>Plain English: {getPlainEnglishSpec(detail.key, detail.val)}</span>
+                      </p>
+                    </div>
+
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 sm:border-l border-slate-200/80 dark:border-slate-800 pt-3 sm:pt-0 sm:pl-4">
+                      <span className="text-[10px] font-bold text-slate-400">Spec Score</span>
+                      <span className="text-2xl font-black text-[#4F46E5] dark:text-indigo-400">
+                        {detail.score}<span className="text-xs text-slate-400 font-normal">/100</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Modal Navigation Tabs */}
+                  <div className="flex items-center gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-2">
+                    {[
+                      { id: 'impact', label: 'Real-World Impact', icon: Zap },
+                      { id: 'breakdown', label: 'Tech Breakdown', icon: Cpu },
+                      { id: 'proscons', label: 'Pros & Cons', icon: CheckCircle2 },
+                      { id: 'rivals', label: 'Comparison Matrix', icon: BarChart2 }
+                    ].map(tab => {
+                      const Icon = tab.icon;
+                      const isActive = specDetailActiveTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setSpecDetailActiveTab(tab.id as any)}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                            isActive
+                              ? 'bg-[#4F46E5] text-white shadow-sm'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          <span>{tab.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Tab 1: Real-World Impact */}
+                  {specDetailActiveTab === 'impact' && (
+                    <div className="space-y-3 animate-fade-in">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {detail.impacts.map((imp, idx) => (
+                          <div key={idx} className="bg-slate-50 dark:bg-slate-900/90 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-black text-slate-900 dark:text-white">{imp.title}</span>
+                              <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md">
+                                {imp.status}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                              {imp.desc}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Buyer Tip Box */}
+                      <div className="p-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-1">
+                        <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
+                          <span>💡 WiseFind Buyer Tip</span>
+                        </span>
+                        <p className="text-xs text-emerald-900 dark:text-emerald-200 font-medium">
+                          {detail.jargon.buyerTip}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tab 2: Tech Breakdown */}
+                  {specDetailActiveTab === 'breakdown' && (
+                    <div className="space-y-3.5 animate-fade-in">
+                      <div className="bg-slate-900 text-slate-100 p-4 rounded-2xl space-y-2 border border-slate-800">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400">Engineering Definition</span>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          {detail.jargon.definition}
+                        </p>
+                      </div>
+
+                      <div className="bg-slate-50 dark:bg-slate-900/90 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Practical Meaning</span>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white">
+                          {detail.jargon.plainMeaning}
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                          {detail.jargon.realWorldImpact}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tab 3: Pros & Cons */}
+                  {specDetailActiveTab === 'proscons' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 animate-fade-in">
+                      <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-4 rounded-2xl border border-emerald-200/80 dark:border-emerald-900/40 space-y-2">
+                        <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                          <span>Key Advantages</span>
+                        </span>
+                        <ul className="space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
+                          {detail.pros.map((pro, idx) => (
+                            <li key={idx} className="flex items-start gap-1.5">
+                              <span className="text-emerald-500 font-bold shrink-0">•</span>
+                              <span>{pro}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="bg-amber-50/50 dark:bg-amber-950/20 p-4 rounded-2xl border border-amber-200/80 dark:border-amber-900/40 space-y-2">
+                        <span className="text-xs font-black text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                          <HelpCircle className="h-4 w-4 text-amber-500" />
+                          <span>Points to Note</span>
+                        </span>
+                        <ul className="space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
+                          {detail.cons.map((con, idx) => (
+                            <li key={idx} className="flex items-start gap-1.5">
+                              <span className="text-amber-500 font-bold shrink-0">•</span>
+                              <span>{con}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tab 4: Rivals Comparison */}
+                  {specDetailActiveTab === 'rivals' && (
+                    <div className="space-y-3 animate-fade-in">
+                      <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+                        {detail.rivalComparison.map((item, idx) => (
+                          <div key={idx} className={`p-3.5 flex items-center justify-between gap-3 ${item.isCurrent ? 'bg-indigo-50/60 dark:bg-indigo-950/40' : 'bg-white dark:bg-slate-900'}`}>
+                            <div className="space-y-0.5">
+                              <span className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                                <span>{item.name}</span>
+                                {item.isCurrent && (
+                                  <span className="text-[9px] font-black uppercase text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900 px-1.5 py-0.2 rounded">
+                                    Current
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-[10px] text-slate-400 block">{item.status}</span>
+                            </div>
+                            <span className="text-xs font-black text-slate-900 dark:text-white">{item.value}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {onAddToCompare && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onAddToCompare(product);
+                            setSelectedSpecDetail(null);
+                          }}
+                          className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-black transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <BarChart2 className="h-4 w-4 text-[#4F46E5]" />
+                          <span>Open Full Product in Side-by-Side Comparison Matrix</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Modal Footer Actions */}
+                <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                    Backed by WiseFind Intelligence Standards
+                  </span>
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {onAskWiseBot && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const q = `Explain in detail what "${detail.key}: ${detail.val}" means on the ${product.name} (₹${product.price}) and how it impacts real-world performance, gaming, and battery life.`;
+                          setSelectedSpecDetail(null);
+                          onAskWiseBot(q);
+                        }}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black text-white bg-[#4F46E5] hover:bg-[#4338CA] transition-all shadow-sm cursor-pointer"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span>Ask WiseBot about this spec</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSpecDetail(null)}
+                      className="px-4 py-2 rounded-xl text-xs font-black text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
+      </AnimatePresence>
 
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Product } from '../types';
+import { Product, PlatformDeal, BankOffer } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Star, Heart, Check, HelpCircle, ArrowRight, ShieldCheck, ShoppingCart, 
@@ -281,6 +281,30 @@ export default function ProductDetails({
       }, 4000);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  // Store Deal Breakdown Modal State
+  const [selectedStoreDeal, setSelectedStoreDeal] = useState<PlatformDeal | null>(null);
+  const [selectedBankOfferId, setSelectedBankOfferId] = useState<string | null>(null);
+  const [includeExchange, setIncludeExchange] = useState<boolean>(false);
+  const [copiedCouponCode, setCopiedCouponCode] = useState<string | null>(null);
+
+  // Set default bank offer when deal is selected
+  const handleOpenStoreDeal = (deal: PlatformDeal) => {
+    setSelectedStoreDeal(deal);
+    setSelectedBankOfferId(deal.bankOffers[0]?.id || null);
+    setIncludeExchange(false);
+    setCopiedCouponCode(null);
+  };
+
+  const handleCopyCoupon = (code: string) => {
+    try {
+      navigator.clipboard.writeText(code);
+      setCopiedCouponCode(code);
+      setTimeout(() => setCopiedCouponCode(null), 3000);
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -1049,7 +1073,7 @@ export default function ProductDetails({
                 return (
                   <div
                     key={deal.platformId}
-                    className={`bg-slate-50/70 dark:bg-[#111827] p-3.5 rounded-2xl border transition-all flex flex-col justify-between ${
+                    className={`bg-slate-50/70 dark:bg-[#111827] p-3.5 rounded-2xl border transition-all flex flex-col justify-between group hover:border-[#7C3AED]/50 hover:shadow-md ${
                       isBestOverall
                         ? 'border-[#7C3AED] ring-2 ring-[#7C3AED]/15 dark:bg-purple-950/30'
                         : isLowest
@@ -1103,20 +1127,242 @@ export default function ProductDetails({
                       </div>
                     </div>
 
-                    <a
-                      href={deal.productUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-[11px] font-bold text-white transition-all shadow-sm cursor-pointer"
-                      style={{ backgroundColor: deal.brandColor === '#111827' ? '#1E293B' : deal.brandColor }}
-                    >
-                      <span>Buy on Store</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenStoreDeal(deal)}
+                        className="flex-1 bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-[#7C3AED] dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[10px] font-black uppercase py-2 px-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1"
+                      >
+                        <Sparkles className="h-3 w-3 text-[#7C3AED]" />
+                        <span>Breakdown</span>
+                      </button>
+
+                      <a
+                        href={deal.productUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-xl text-[10px] font-bold text-white transition-all shadow-sm cursor-pointer"
+                        style={{ backgroundColor: deal.brandColor === '#111827' ? '#1E293B' : deal.brandColor }}
+                      >
+                        <span>Buy</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
                   </div>
                 );
               })}
             </div>
+
+            {/* Interactive Store Deal Deep-Dive Modal */}
+            <AnimatePresence>
+              {selectedStoreDeal && (() => {
+                const activeBankOffer = selectedStoreDeal.bankOffers.find(b => b.id === selectedBankOfferId);
+                const bankDiscount = activeBankOffer ? activeBankOffer.discountAmount : 0;
+                const exchangeDiscount = includeExchange ? selectedStoreDeal.exchangeBonus : 0;
+                const netEffectivePrice = Math.max(0, selectedStoreDeal.salePrice - bankDiscount - exchangeDiscount + selectedStoreDeal.deliveryFee);
+
+                return (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+                    onClick={() => setSelectedStoreDeal(null)}
+                  >
+                    <motion.div
+                      initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                      animate={{ scale: 1, opacity: 1, y: 0 }}
+                      exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto"
+                    >
+                      {/* Modal Header */}
+                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="h-10 w-10 rounded-xl flex items-center justify-center font-black text-white text-xs shadow-sm"
+                            style={{ backgroundColor: selectedStoreDeal.brandColor }}
+                          >
+                            {selectedStoreDeal.platformName.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-base font-black text-slate-900 dark:text-white">
+                                {selectedStoreDeal.platformName} Deal Breakdown
+                              </h3>
+                              {selectedStoreDeal.isBestOverallDeal && (
+                                <span className="bg-[#7C3AED] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
+                                  Best Overall
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-slate-500 font-medium">
+                              Seller: {selectedStoreDeal.sellerName} (⭐ {selectedStoreDeal.sellerRating}/5)
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => setSelectedStoreDeal(null)}
+                          className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                        >
+                          <X className="h-5 w-5" />
+                        </button>
+                      </div>
+
+                      {/* Live Price Waterfall */}
+                      <div className="bg-slate-50 dark:bg-[#0B101D] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-2.5">
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">
+                          Net Effective Cost Waterfall
+                        </span>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-600 dark:text-slate-400">Base Retail MRP</span>
+                          <span className="text-slate-400 line-through">₹{selectedStoreDeal.basePrice.toLocaleString('en-IN')}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-600 dark:text-slate-400">Direct Store Sale Price</span>
+                          <span className="font-bold text-slate-900 dark:text-white">₹{selectedStoreDeal.salePrice.toLocaleString('en-IN')}</span>
+                        </div>
+
+                        {bankDiscount > 0 && (
+                          <div className="flex justify-between items-center text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+                            <span className="flex items-center gap-1">
+                              <CreditCard className="h-3.5 w-3.5" />
+                              <span>Bank Instant Discount ({activeBankOffer?.bankCode})</span>
+                            </span>
+                            <span>-₹{bankDiscount.toLocaleString('en-IN')}</span>
+                          </div>
+                        )}
+
+                        {exchangeDiscount > 0 && (
+                          <div className="flex justify-between items-center text-xs text-purple-600 dark:text-purple-400 font-bold">
+                            <span className="flex items-center gap-1">
+                              <RefreshCw className="h-3.5 w-3.5" />
+                              <span>Exchange Bonus</span>
+                            </span>
+                            <span>-₹{exchangeDiscount.toLocaleString('en-IN')}</span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400">
+                          <span className="flex items-center gap-1">
+                            <Truck className="h-3.5 w-3.5" />
+                            <span>Delivery Fee</span>
+                          </span>
+                          <span className="font-bold">{selectedStoreDeal.deliveryFee === 0 ? 'FREE' : `₹${selectedStoreDeal.deliveryFee}`}</span>
+                        </div>
+
+                        <div className="border-t border-slate-200 dark:border-slate-800 pt-2.5 flex justify-between items-center">
+                          <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                            Net Effective Price
+                          </span>
+                          <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                            ₹{netEffectivePrice.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Bank Offers Selector */}
+                      {selectedStoreDeal.bankOffers.length > 0 && (
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">
+                            Select Payment / Bank Offer
+                          </label>
+                          <div className="space-y-1.5">
+                            {selectedStoreDeal.bankOffers.map(offer => {
+                              const isSelected = selectedBankOfferId === offer.id;
+                              return (
+                                <div
+                                  key={offer.id}
+                                  onClick={() => setSelectedBankOfferId(isSelected ? null : offer.id)}
+                                  className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between ${
+                                    isSelected
+                                      ? 'bg-purple-50/70 dark:bg-purple-950/40 border-[#7C3AED] ring-1 ring-[#7C3AED]/40'
+                                      : 'bg-white dark:bg-[#0B101D] border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5">
+                                    <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${isSelected ? 'border-[#7C3AED] bg-[#7C3AED]' : 'border-slate-300'}`}>
+                                      {isSelected && <Check className="h-3 w-3 text-white" />}
+                                    </div>
+                                    <div>
+                                      <span className="font-bold text-slate-900 dark:text-white block">{offer.bank}</span>
+                                      <span className="text-[11px] text-slate-500 dark:text-slate-400">{offer.description}</span>
+                                    </div>
+                                  </div>
+                                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                                    Save ₹{offer.discountAmount.toLocaleString('en-IN')}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Exchange Bonus & Logistics Highlights */}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div
+                          onClick={() => setIncludeExchange(!includeExchange)}
+                          className={`p-3 rounded-xl border cursor-pointer select-none transition-all ${
+                            includeExchange
+                              ? 'bg-purple-50/70 dark:bg-purple-950/30 border-[#7C3AED]'
+                              : 'bg-white dark:bg-[#0B101D] border-slate-200 dark:border-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white mb-0.5">
+                            <RefreshCw className="h-3.5 w-3.5 text-[#7C3AED]" />
+                            <span>Exchange Bonus</span>
+                          </div>
+                          <span className="text-[11px] text-slate-500">
+                            {includeExchange ? `Applied (+₹${selectedStoreDeal.exchangeBonus.toLocaleString('en-IN')})` : `Click to simulate +₹${selectedStoreDeal.exchangeBonus.toLocaleString('en-IN')}`}
+                          </span>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-white dark:bg-[#0B101D] border border-slate-200 dark:border-slate-800">
+                          <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white mb-0.5">
+                            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                            <span>Return & Warranty</span>
+                          </div>
+                          <span className="text-[11px] text-slate-500">
+                            {selectedStoreDeal.returnPolicy} • 1 Yr Warranty
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAlertPrice(selectedStoreDeal.salePrice);
+                            setSelectedStoreDeal(null);
+                            setToastMessage(`🎯 Price alert target set to ₹${selectedStoreDeal.salePrice.toLocaleString('en-IN')}!`);
+                            setShowToast(true);
+                            setTimeout(() => setShowToast(false), 4000);
+                          }}
+                          className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-black py-3 rounded-xl transition-all cursor-pointer text-center"
+                        >
+                          Track this Price
+                        </button>
+
+                        <a
+                          href={selectedStoreDeal.productUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black py-3 rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5 text-center"
+                        >
+                          <span>Checkout on Store</span>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                );
+              })()}
+            </AnimatePresence>
           </div>
 
           {/* Historical Price Trend (Last 30 Days) */}

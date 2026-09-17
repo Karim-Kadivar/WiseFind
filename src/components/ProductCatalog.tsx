@@ -74,6 +74,22 @@ const getCategoryIcon = (category: string) => {
   return Layers;
 };
 
+// Dynamic Category Gradient Theme Helper
+const getCategoryGradient = (category: string) => {
+  const norm = category.toLowerCase();
+  if (norm.includes('phone') || norm.includes('mobile')) return 'from-blue-600 to-cyan-600 shadow-blue-500/25';
+  if (norm.includes('laptop') || norm.includes('computer')) return 'from-emerald-600 to-teal-600 shadow-emerald-500/25';
+  if (norm.includes('tablet')) return 'from-indigo-600 to-violet-600 shadow-indigo-500/25';
+  if (norm.includes('watch')) return 'from-rose-600 to-pink-600 shadow-rose-500/25';
+  if (norm.includes('headphone')) return 'from-amber-600 to-orange-600 shadow-amber-500/25';
+  if (norm.includes('earbud')) return 'from-purple-600 to-fuchsia-600 shadow-purple-500/25';
+  if (norm.includes('console') || norm.includes('gaming')) return 'from-red-600 to-rose-600 shadow-red-500/25';
+  if (norm.includes('camera')) return 'from-yellow-600 to-amber-600 shadow-yellow-500/25';
+  if (norm.includes('projector') || norm.includes('tv')) return 'from-sky-600 to-blue-600 shadow-sky-500/25';
+  if (norm.includes('keyboard')) return 'from-teal-600 to-emerald-600 shadow-teal-500/25';
+  return 'from-[#4F46E5] to-[#7C3AED] shadow-indigo-500/25';
+};
+
 // Budget Presets with Quick Ranges
 const BUDGET_PRESETS = [
   { id: 'all', label: 'All Budgets', min: 0, max: 250000 },
@@ -350,11 +366,11 @@ export default function ProductCatalog({
       {/* ------------------------------------------------------------- */}
       {/* 1. TOP HEADER & INTERACTIVE COMMAND BAR */}
       {/* ------------------------------------------------------------- */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+      <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-violet-500/10 dark:from-blue-950/40 dark:via-indigo-950/30 dark:to-violet-950/40 border border-blue-200/60 dark:border-indigo-900/50 rounded-3xl p-6 sm:p-7 mb-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 shadow-sm">
         <div>
           <div className="flex flex-wrap items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center gap-1">
-              <Sparkles className="h-3 w-3 text-indigo-500" />
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-200 dark:border-blue-800 flex items-center gap-1 shadow-xs">
+              <Sparkles className="h-3 w-3 text-amber-500" />
               Verified Multi-Platform Specs
             </span>
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
@@ -362,9 +378,9 @@ export default function ProductCatalog({
             </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-            Explore & Compare Hardware
+            Explore & Compare <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-300 dark:to-purple-400">Hardware</span>
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-2xl">
             Interactive specs matrix, unbiased AI benchmark scoring, custom budget constraints, and side-by-side comparison engine.
           </p>
         </div>
@@ -451,7 +467,7 @@ export default function ProductCatalog({
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* 2. CATEGORY HORIZONTAL CAROUSEL TABS */}
+      {/* 2. CATEGORY HORIZONTAL CAROUSEL TABS WITH DYNAMIC GRADIENTS */}
       {/* ------------------------------------------------------------- */}
       <div className="relative mb-5">
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide no-scrollbar -mx-2 px-2">
@@ -459,6 +475,7 @@ export default function ProductCatalog({
             const Icon = getCategoryIcon(cat);
             const isSelected = selectedCategory === cat;
             const count = categoryCounts[cat] || 0;
+            const catGradient = getCategoryGradient(cat);
 
             return (
               <button
@@ -470,7 +487,7 @@ export default function ProductCatalog({
                 }}
                 className={`relative flex items-center gap-2 px-3.5 py-2.5 rounded-2xl text-xs font-black transition-all duration-200 whitespace-nowrap cursor-pointer shrink-0 border ${
                   isSelected
-                    ? 'bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] text-white border-transparent shadow-md shadow-[#4F46E5]/25 scale-[1.02]'
+                    ? `bg-gradient-to-r ${catGradient} text-white border-transparent shadow-md scale-[1.02]`
                     : 'bg-white dark:bg-[#12182B] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white hover:border-slate-300'
                 }`}
               >
@@ -1117,18 +1134,18 @@ export default function ProductCatalog({
                         />
                         
                         {/* Top Badging Ribbons */}
-                        <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
+                        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
                           <span className="text-[9px] font-black text-white bg-slate-900/90 backdrop-blur-sm px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
                             {prod.category}
                           </span>
                           {prod.isEditorChoice && (
-                            <span className="text-[9px] font-black text-white bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs flex items-center gap-1">
+                            <span className="text-[9px] font-black text-white bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-500 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm flex items-center gap-1">
                               <Sparkles className="h-2.5 w-2.5" />
                               Editor's Pick
                             </span>
                           )}
                           {prod.isBestBudget && (
-                            <span className="text-[9px] font-black text-white bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs flex items-center gap-1">
+                            <span className="text-[9px] font-black text-white bg-gradient-to-r from-emerald-600 to-teal-500 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm flex items-center gap-1">
                               <Tag className="h-2.5 w-2.5" />
                               Best Value
                             </span>

@@ -628,17 +628,21 @@ export function AppContent() {
             {/* "How It Works" section */}
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 border-b border-slate-200/80 dark:border-slate-800" id="how-it-works">
               <div className="text-center max-w-2xl mx-auto mb-14 sm:mb-16">
-                <div className="inline-flex items-center gap-1.5 text-xs font-black text-[#4F46E5] dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/80 dark:border-indigo-800/80 px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-3">
+                <div className="inline-flex items-center gap-1.5 text-xs font-black text-[#4F46E5] dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/80 dark:border-indigo-800/80 px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-3 shadow-xs">
                   <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
                   <span>Platform Architecture</span>
                 </div>
-                <h3 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">Decide with Absolute Confidence</h3>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2.5 font-medium max-w-lg mx-auto">An objective three-tier telemetry pipeline that values verified benchmark specifications above sales margins.</p>
+                <h3 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                  Decide with <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-300 dark:to-pink-400">Absolute Confidence</span>
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2.5 font-medium max-w-lg mx-auto">
+                  An objective three-tier telemetry pipeline that values verified benchmark specifications above sales margins.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-                {/* Visual horizontal separator lines for desktop */}
-                <div className="hidden md:block absolute top-[48px] left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-indigo-500/30 via-purple-500/40 to-amber-500/30 -z-10" />
+                {/* Visual horizontal separator line with multi-color gradient */}
+                <div className="hidden md:block absolute top-[48px] left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-cyan-400 via-purple-500 to-emerald-400 opacity-40 -z-10" />
 
                 {[
                   {
@@ -646,46 +650,55 @@ export function AppContent() {
                     title: "Natural Query Input",
                     subtitle: "Intent Parsing & Price Constraints",
                     description: "Describe your custom budget, workflows, brand constraints, and priority features in plain English, technical specs, or Indian Rupees (₹).",
-                    badgeColor: "bg-indigo-50 dark:bg-indigo-950/90 text-[#4F46E5] dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
-                    hoverGlow: "hover:border-[#4F46E5] hover:shadow-indigo-500/10",
-                    featureTag: "Real-time Natural Language"
+                    badgeColor: "bg-cyan-50 dark:bg-cyan-950/90 text-cyan-700 dark:text-cyan-300 border-cyan-300 dark:border-cyan-800",
+                    hoverGlow: "hover:border-cyan-400 dark:hover:border-cyan-500 hover:shadow-lg hover:shadow-cyan-500/15",
+                    gradientOverlay: "from-cyan-500/8 via-sky-500/5 to-transparent",
+                    featureTag: "Real-time Natural Language",
+                    tagColor: "bg-cyan-50 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800",
+                    accentText: "group-hover:text-cyan-600 dark:group-hover:text-cyan-400"
                   },
                   {
                     step: "02",
                     title: "Grounded Specs Harvest",
                     subtitle: "Multi-Store & Benchmark Ingestion",
                     description: "Our system queries search layers in real-time, matching technical manuals, pricing tables, benchmark scores, and independent consumer sentiment.",
-                    badgeColor: "bg-purple-50 dark:bg-purple-950/90 text-purple-600 dark:text-purple-300 border-purple-200 dark:border-purple-800",
-                    hoverGlow: "hover:border-purple-500 hover:shadow-purple-500/10",
-                    featureTag: "Live INR (₹) Grounding"
+                    badgeColor: "bg-purple-50 dark:bg-purple-950/90 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800",
+                    hoverGlow: "hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-lg hover:shadow-purple-500/15",
+                    gradientOverlay: "from-purple-500/8 via-violet-500/5 to-transparent",
+                    featureTag: "Live INR (₹) Grounding",
+                    tagColor: "bg-purple-50 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800",
+                    accentText: "group-hover:text-purple-600 dark:group-hover:text-purple-400"
                   },
                   {
                     step: "03",
                     title: "Unbiased Score Matrix",
                     subtitle: "0-100 Neural Match Calculation",
                     description: "Receive complete structural match quotients, unbiased pros/cons, key specifications, and live store availability without manufacturer bias.",
-                    badgeColor: "bg-amber-50 dark:bg-amber-950/90 text-amber-600 dark:text-amber-300 border-amber-200 dark:border-amber-800",
-                    hoverGlow: "hover:border-amber-500 hover:shadow-amber-500/10",
-                    featureTag: "Zero Sponsored Bias"
+                    badgeColor: "bg-emerald-50 dark:bg-emerald-950/90 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
+                    hoverGlow: "hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/15",
+                    gradientOverlay: "from-emerald-500/8 via-teal-500/5 to-transparent",
+                    featureTag: "Zero Sponsored Bias",
+                    tagColor: "bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+                    accentText: "group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
                   }
                 ].map((item, idx) => (
                   <motion.div 
                     key={idx}
                     whileHover={{ y: -6, scale: 1.015 }}
                     transition={{ type: "spring", stiffness: 300, damping: 22 }}
-                    className={`bg-white dark:bg-[#12182B] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xs ${item.hoverGlow} transition-all duration-300 relative overflow-hidden flex flex-col justify-between group`}
+                    className={`bg-white dark:bg-[#12182B] bg-gradient-to-b ${item.gradientOverlay} border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xs ${item.hoverGlow} transition-all duration-300 relative overflow-hidden flex flex-col justify-between group`}
                   >
                     <div className="space-y-3.5">
                       <div className="flex justify-between items-center">
                         <span className={`h-11 w-11 rounded-2xl border-2 flex items-center justify-center font-black text-sm shadow-xs ${item.badgeColor}`}>
                           {item.step}
                         </span>
-                        <span className="text-[9px] font-black tracking-widest text-[#4F46E5] dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/80 px-2 py-0.5 rounded-md uppercase">
+                        <span className={`text-[9px] font-black tracking-widest px-2 py-0.5 rounded-md uppercase border ${item.tagColor}`}>
                           {item.featureTag}
                         </span>
                       </div>
                       <div>
-                        <h4 className="font-black text-slate-900 dark:text-white text-base group-hover:text-[#4F46E5] dark:group-hover:text-indigo-400 transition-colors">
+                        <h4 className={`font-black text-slate-900 dark:text-white text-base ${item.accentText} transition-colors`}>
                           {item.title}
                         </h4>
                         <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mt-0.5">
@@ -697,7 +710,7 @@ export function AppContent() {
                       </p>
                     </div>
 
-                    <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-black text-slate-400 group-hover:text-[#4F46E5] dark:group-hover:text-indigo-300 uppercase tracking-wider">
+                    <div className={`mt-5 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-black text-slate-400 ${item.accentText} uppercase tracking-wider`}>
                       <span>TIER {idx + 1} PIPELINE</span>
                       <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
                     </div>
@@ -706,14 +719,16 @@ export function AppContent() {
               </div>
             </section>
 
-            {/* Category Showcase Panel */}
+            {/* Category Showcase Panel with Distinct Colors for each Directory */}
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 border-b border-slate-200/80 dark:border-slate-800" id="category-showcase">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-4">
                 <div>
-                  <span className="text-xs font-black text-[#4F46E5] dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/80 dark:border-indigo-800/80 px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-2.5 inline-block">
+                  <span className="text-xs font-black text-cyan-600 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/70 border border-cyan-200/80 dark:border-cyan-800/80 px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-2.5 inline-block shadow-xs">
                     Segment Directories
                   </span>
-                  <h3 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">Browse Core Directories</h3>
+                  <h3 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                    Browse Core <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-300 dark:to-purple-400">Directories</span>
+                  </h3>
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">Select a specialized segment below to browse active specification sheets, pricing levels, and scores.</p>
                 </div>
                 <motion.button
@@ -732,17 +747,121 @@ export function AppContent() {
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                 {[
-                  { name: 'Smartphones', icon: '📱', desc: 'Titanium, LTPO, Zoom OIS', badge: "Hot", count: "12 Models" },
-                  { name: 'Laptops', icon: '💻', desc: 'ARM, OLED, Intel Core Ultra', badge: "Popular", count: "10 Models" },
-                  { name: 'Tablets', icon: '✏️', desc: 'Liquid Retina, Stylus pen', count: "6 Models" },
-                  { name: 'Smartwatches', icon: '⌚', desc: 'ECG, Always-on AMOLED', count: "7 Models" },
-                  { name: 'Headphones', icon: '🎧', desc: 'ANC, High-fidelity LDAC', count: "8 Models" },
-                  { name: 'Earbuds', icon: '🎵', desc: 'Adaptive ANC, Spatial Audio', badge: "New", count: "8 Models" },
-                  { name: 'Handheld Consoles', icon: '🎮', desc: 'SteamOS, OLED, 120Hz', count: "4 Models" },
-                  { name: 'Cameras', icon: '📷', desc: 'Full Frame, 4K120 Creators', count: "5 Models" },
-                  { name: 'Smart Projectors', icon: '📽️', desc: 'Dolby Vision, Laser 4K', count: "4 Models" },
-                  { name: 'Mechanical Keyboards', icon: '⌨️', desc: 'Hot-swappable, CNC aluminum', badge: "Elite", count: "6 Models" },
-                ].map((cat, idx) => (
+                  { 
+                    name: 'Smartphones', 
+                    icon: '📱', 
+                    desc: 'Titanium, LTPO, Zoom OIS', 
+                    badge: "Hot", 
+                    count: "12 Models",
+                    gradient: "from-blue-500/10 via-cyan-500/5 to-transparent",
+                    hoverBorder: "hover:border-cyan-400 dark:hover:border-cyan-500",
+                    badgeTheme: "bg-cyan-50 text-cyan-700 dark:bg-cyan-950/80 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800",
+                    hoverGlow: "hover:shadow-cyan-500/15",
+                    accentColor: "group-hover:text-cyan-600 dark:group-hover:text-cyan-400"
+                  },
+                  { 
+                    name: 'Laptops', 
+                    icon: '💻', 
+                    desc: 'ARM, OLED, Intel Core Ultra', 
+                    badge: "Popular", 
+                    count: "10 Models",
+                    gradient: "from-emerald-500/10 via-teal-500/5 to-transparent",
+                    hoverBorder: "hover:border-emerald-400 dark:hover:border-emerald-500",
+                    badgeTheme: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+                    hoverGlow: "hover:shadow-emerald-500/15",
+                    accentColor: "group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
+                  },
+                  { 
+                    name: 'Tablets', 
+                    icon: '✏️', 
+                    desc: 'Liquid Retina, Stylus pen', 
+                    count: "6 Models",
+                    gradient: "from-indigo-500/10 via-violet-500/5 to-transparent",
+                    hoverBorder: "hover:border-indigo-400 dark:hover:border-indigo-500",
+                    badgeTheme: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
+                    hoverGlow: "hover:shadow-indigo-500/15",
+                    accentColor: "group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
+                  },
+                  { 
+                    name: 'Smartwatches', 
+                    icon: '⌚', 
+                    desc: 'ECG, Always-on AMOLED', 
+                    count: "7 Models",
+                    gradient: "from-pink-500/10 via-rose-500/5 to-transparent",
+                    hoverBorder: "hover:border-pink-400 dark:hover:border-pink-500",
+                    badgeTheme: "bg-pink-50 text-pink-700 dark:bg-pink-950/80 dark:text-pink-300 border-pink-200 dark:border-pink-800",
+                    hoverGlow: "hover:shadow-pink-500/15",
+                    accentColor: "group-hover:text-pink-600 dark:group-hover:text-pink-400"
+                  },
+                  { 
+                    name: 'Headphones', 
+                    icon: '🎧', 
+                    desc: 'ANC, High-fidelity LDAC', 
+                    count: "8 Models",
+                    gradient: "from-amber-500/10 via-orange-500/5 to-transparent",
+                    hoverBorder: "hover:border-amber-400 dark:hover:border-amber-500",
+                    badgeTheme: "bg-amber-50 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+                    hoverGlow: "hover:shadow-amber-500/15",
+                    accentColor: "group-hover:text-amber-600 dark:group-hover:text-amber-400"
+                  },
+                  { 
+                    name: 'Earbuds', 
+                    icon: '🎵', 
+                    desc: 'Adaptive ANC, Spatial Audio', 
+                    badge: "New", 
+                    count: "8 Models",
+                    gradient: "from-purple-500/10 via-fuchsia-500/5 to-transparent",
+                    hoverBorder: "hover:border-purple-400 dark:hover:border-purple-500",
+                    badgeTheme: "bg-purple-50 text-purple-700 dark:bg-purple-950/80 dark:text-purple-300 border-purple-200 dark:border-purple-800",
+                    hoverGlow: "hover:shadow-purple-500/15",
+                    accentColor: "group-hover:text-purple-600 dark:group-hover:text-purple-400"
+                  },
+                  { 
+                    name: 'Handheld Consoles', 
+                    icon: '🎮', 
+                    desc: 'SteamOS, OLED, 120Hz', 
+                    count: "4 Models",
+                    gradient: "from-red-500/10 via-rose-500/5 to-transparent",
+                    hoverBorder: "hover:border-red-400 dark:hover:border-red-500",
+                    badgeTheme: "bg-red-50 text-red-700 dark:bg-red-950/80 dark:text-red-300 border-red-200 dark:border-red-800",
+                    hoverGlow: "hover:shadow-red-500/15",
+                    accentColor: "group-hover:text-red-600 dark:group-hover:text-red-400"
+                  },
+                  { 
+                    name: 'Cameras', 
+                    icon: '📷', 
+                    desc: 'Full Frame, 4K120 Creators', 
+                    count: "5 Models",
+                    gradient: "from-yellow-500/10 via-amber-500/5 to-transparent",
+                    hoverBorder: "hover:border-yellow-400 dark:hover:border-yellow-500",
+                    badgeTheme: "bg-yellow-50 text-yellow-700 dark:bg-yellow-950/80 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800",
+                    hoverGlow: "hover:shadow-yellow-500/15",
+                    accentColor: "group-hover:text-yellow-600 dark:group-hover:text-yellow-400"
+                  },
+                  { 
+                    name: 'Smart Projectors', 
+                    icon: '📽️', 
+                    desc: 'Dolby Vision, Laser 4K', 
+                    count: "4 Models",
+                    gradient: "from-sky-500/10 via-blue-500/5 to-transparent",
+                    hoverBorder: "hover:border-sky-400 dark:hover:border-sky-500",
+                    badgeTheme: "bg-sky-50 text-sky-700 dark:bg-sky-950/80 dark:text-sky-300 border-sky-200 dark:border-sky-800",
+                    hoverGlow: "hover:shadow-sky-500/15",
+                    accentColor: "group-hover:text-sky-600 dark:group-hover:text-sky-400"
+                  },
+                  { 
+                    name: 'Mechanical Keyboards', 
+                    icon: '⌨️', 
+                    desc: 'Hot-swappable, CNC aluminum', 
+                    badge: "Elite", 
+                    count: "6 Models",
+                    gradient: "from-teal-500/10 via-emerald-500/5 to-transparent",
+                    hoverBorder: "hover:border-teal-400 dark:hover:border-teal-500",
+                    badgeTheme: "bg-teal-50 text-teal-700 dark:bg-teal-950/80 dark:text-teal-300 border-teal-200 dark:border-teal-800",
+                    hoverGlow: "hover:shadow-teal-500/15",
+                    accentColor: "group-hover:text-teal-600 dark:group-hover:text-teal-400"
+                  },
+                ].map((cat) => (
                   <motion.div
                     key={cat.name}
                     whileHover={{ y: -5, scale: 1.02 }}
@@ -751,20 +870,20 @@ export function AppContent() {
                       setPreselectedCategory(cat.name);
                       setActiveTab('browse');
                     }}
-                    className="bg-white dark:bg-[#12182B] border border-slate-200/90 dark:border-slate-800 hover:border-[#4F46E5] dark:hover:border-indigo-500 rounded-3xl p-5 shadow-xs hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
+                    className={`bg-white dark:bg-[#12182B] bg-gradient-to-b ${cat.gradient} border border-slate-200/90 dark:border-slate-800 ${cat.hoverBorder} ${cat.hoverGlow} rounded-3xl p-5 shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between group relative overflow-hidden`}
                   >
                     {cat.badge && (
-                      <span className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-wider text-[#4F46E5] dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200/60 dark:border-indigo-800 px-2 py-0.5 rounded-lg shadow-xs">
+                      <span className={`absolute top-3 right-3 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shadow-xs border ${cat.badgeTheme}`}>
                         {cat.badge}
                       </span>
                     )}
                     <div>
                       <span className="text-3xl sm:text-4xl block mb-3 group-hover:scale-115 transition-transform duration-300">{cat.icon}</span>
-                      <h4 className="font-black text-slate-800 dark:text-slate-100 text-sm group-hover:text-[#4F46E5] dark:group-hover:text-indigo-400 transition-colors">{cat.name}</h4>
+                      <h4 className={`font-black text-slate-800 dark:text-slate-100 text-sm ${cat.accentColor} transition-colors`}>{cat.name}</h4>
                       <p className="text-[10px] text-slate-400 font-medium tracking-tight mt-1 line-clamp-1">{cat.desc}</p>
                     </div>
                     
-                    <div className="mt-4 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px] font-extrabold text-slate-400 group-hover:text-[#4F46E5] dark:group-hover:text-indigo-300">
+                    <div className={`mt-4 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px] font-extrabold text-slate-400 ${cat.accentColor}`}>
                       <span>{cat.count}</span>
                       <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
                     </div>
@@ -781,91 +900,131 @@ export function AppContent() {
               }}
             />
 
-            {/* WiseBot preview prompt chip and testimonials */}
+            {/* WiseBot preview prompt chip and testimonials with Cyber Amethyst Theme */}
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 border-b border-slate-200/80 dark:border-slate-800" id="testimonials">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-center">
-                <div className="space-y-5">
-                  <span className="text-xs font-black text-[#4F46E5] dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200/80 dark:border-indigo-800 px-3.5 py-1.5 rounded-full uppercase tracking-widest">
-                    WiseBot AI Co-Pilot
-                  </span>
-                  <h3 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">Your Unbiased Shopping Companion</h3>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-                    WiseBot is deeply integrated into specifications databases. It contrasts multiple options side-by-side, decodes technical jargon instantly, and protects you from buying over-hyped hardware.
-                  </p>
-                  <motion.button
-                    whileHover={{ scale: 1.03, y: -2 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => setActiveTab('wisebot')}
-                    className="bg-slate-900 dark:bg-[#7C3AED] hover:bg-black dark:hover:bg-[#6D28D9] text-white font-black text-xs uppercase tracking-wider px-7 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2.5 cursor-pointer"
-                  >
-                    <Bot className="h-4 w-4 text-amber-300 animate-pulse" />
-                    <span>Initiate Chat Session</span>
-                  </motion.button>
-                </div>
-
-                <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  {TESTIMONIALS.map((t, index) => (
-                    <motion.div 
-                      key={index} 
-                      whileHover={{ y: -6 }}
-                      className="bg-white dark:bg-[#12182B] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-6 hover:shadow-xl hover:border-indigo-200 dark:hover:border-indigo-800 transition-all duration-300"
+              <div className="bg-gradient-to-br from-indigo-50/70 via-purple-50/40 to-slate-50/80 dark:from-[#13132B]/80 dark:via-[#0F1424]/90 dark:to-[#170E2B]/80 border border-indigo-200/60 dark:border-indigo-900/50 rounded-3xl p-8 sm:p-12 shadow-sm">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-center">
+                  <div className="space-y-5">
+                    <span className="text-xs font-black text-purple-700 dark:text-purple-300 bg-purple-100/90 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800 px-3.5 py-1.5 rounded-full uppercase tracking-widest inline-flex items-center gap-1.5 shadow-xs">
+                      <Sparkles className="h-3 w-3 text-amber-500 animate-spin" style={{ animationDuration: '6s' }} />
+                      WiseBot AI Co-Pilot
+                    </span>
+                    <h3 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                      Your Unbiased <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 dark:from-purple-400 dark:via-pink-300 dark:to-amber-300">Shopping Companion</span>
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                      WiseBot is deeply integrated into specifications databases. It contrasts multiple options side-by-side, decodes technical jargon instantly, and protects you from buying over-hyped hardware.
+                    </p>
+                    <motion.button
+                      whileHover={{ scale: 1.03, y: -2 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => setActiveTab('wisebot')}
+                      className="bg-gradient-to-r from-[#4F46E5] via-[#7C3AED] to-[#EC4899] hover:opacity-95 text-white font-black text-xs uppercase tracking-wider px-7 py-4 rounded-2xl shadow-lg hover:shadow-indigo-500/25 transition-all flex items-center gap-2.5 cursor-pointer"
                     >
-                      <div className="space-y-3">
-                        <div className="flex gap-1">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                          ))}
-                        </div>
-                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-semibold">
-                          "{t.text}"
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                        <img src={t.avatar} className="h-9 w-9 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex-shrink-0" alt={t.name} />
-                        <div className="min-w-0">
-                          <h4 className="font-extrabold text-slate-800 dark:text-slate-200 text-xs truncate">{t.name}</h4>
-                          <span className="text-[9px] text-slate-400 block font-bold uppercase tracking-wider truncate">{t.role}</span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      <Bot className="h-4 w-4 text-amber-300 animate-pulse" />
+                      <span>Initiate Chat Session</span>
+                    </motion.button>
+                  </div>
+
+                  <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    {TESTIMONIALS.map((t, index) => {
+                      // Distinct color flair per testimonial card
+                      const cardThemes = [
+                        {
+                          border: "border-blue-200/80 dark:border-blue-900/50 hover:border-blue-400 dark:hover:border-blue-500",
+                          gradient: "from-blue-500/8 to-cyan-500/5",
+                          tag: "Student Dev",
+                          badge: "bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                        },
+                        {
+                          border: "border-emerald-200/80 dark:border-emerald-900/50 hover:border-emerald-400 dark:hover:border-emerald-500",
+                          gradient: "from-emerald-500/8 to-teal-500/5",
+                          tag: "System Architect",
+                          badge: "bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                        },
+                        {
+                          border: "border-purple-200/80 dark:border-purple-900/50 hover:border-purple-400 dark:hover:border-purple-500",
+                          gradient: "from-purple-500/8 to-pink-500/5",
+                          tag: "Creative Studio",
+                          badge: "bg-purple-50 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
+                        }
+                      ];
+                      const theme = cardThemes[index % cardThemes.length];
+
+                      return (
+                        <motion.div 
+                          key={index} 
+                          whileHover={{ y: -6, scale: 1.02 }}
+                          className={`bg-white dark:bg-[#12182B] bg-gradient-to-b ${theme.gradient} border ${theme.border} rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-5 hover:shadow-xl transition-all duration-300`}
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex gap-1">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                ))}
+                              </div>
+                              <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${theme.badge}`}>
+                                {theme.tag}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed font-semibold">
+                              "{t.text}"
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                            <img src={t.avatar} className="h-9 w-9 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex-shrink-0" alt={t.name} />
+                            <div className="min-w-0">
+                              <h4 className="font-extrabold text-slate-800 dark:text-slate-200 text-xs truncate">{t.name}</h4>
+                              <span className="text-[9px] text-slate-400 block font-bold uppercase tracking-wider truncate">{t.role}</span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </section>
 
-            {/* Platform statistics & credibility */}
+            {/* Platform statistics & credibility with individual Vibrant Gradients */}
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-24 border-b border-slate-200/50 dark:border-slate-800 text-center" id="stats">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
-                <div className="space-y-1">
-                  <span className="text-4xl sm:text-5xl font-black text-primary tracking-tight block">24,800+</span>
-                  <span className="text-xs text-slate-800 dark:text-slate-200 font-extrabold block uppercase tracking-wider">Decisions Guided</span>
-                  <p className="text-[10px] text-slate-400 font-semibold max-w-[150px] mx-auto">Objective matching recommendations formulated</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8">
+                <div className="p-6 rounded-3xl bg-gradient-to-b from-blue-500/5 to-transparent border border-blue-200/50 dark:border-blue-900/40 hover:border-blue-400 transition-all group space-y-1.5">
+                  <span className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-300 tracking-tight block">24,800+</span>
+                  <span className="text-xs text-slate-800 dark:text-slate-200 font-black block uppercase tracking-wider">Decisions Guided</span>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold max-w-[150px] mx-auto">Objective matching recommendations formulated</p>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-4xl sm:text-5xl font-black text-primary tracking-tight block">98.4%</span>
-                  <span className="text-xs text-slate-800 dark:text-slate-200 font-extrabold block uppercase tracking-wider">User Happiness</span>
-                  <p className="text-[10px] text-slate-400 font-semibold max-w-[150px] mx-auto">Users finding their perfect hardware match</p>
+                
+                <div className="p-6 rounded-3xl bg-gradient-to-b from-emerald-500/5 to-transparent border border-emerald-200/50 dark:border-emerald-900/40 hover:border-emerald-400 transition-all group space-y-1.5">
+                  <span className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300 tracking-tight block">98.4%</span>
+                  <span className="text-xs text-slate-800 dark:text-slate-200 font-black block uppercase tracking-wider">User Happiness</span>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold max-w-[150px] mx-auto">Users finding their perfect hardware match</p>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-4xl sm:text-5xl font-black text-primary tracking-tight block">0%</span>
-                  <span className="text-xs text-slate-800 dark:text-slate-200 font-extrabold block uppercase tracking-wider">Paid Promotion</span>
-                  <p className="text-[10px] text-slate-400 font-semibold max-w-[150px] mx-auto">Zero brand deals. Zero sponsored metrics.</p>
+                
+                <div className="p-6 rounded-3xl bg-gradient-to-b from-rose-500/5 to-transparent border border-rose-200/50 dark:border-rose-900/40 hover:border-rose-400 transition-all group space-y-1.5">
+                  <span className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-500 dark:from-rose-400 dark:to-pink-300 tracking-tight block">0%</span>
+                  <span className="text-xs text-slate-800 dark:text-slate-200 font-black block uppercase tracking-wider">Paid Promotion</span>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold max-w-[150px] mx-auto">Zero brand deals. Zero sponsored metrics.</p>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-4xl sm:text-5xl font-black text-primary tracking-tight block">10+</span>
-                  <span className="text-xs text-slate-800 dark:text-slate-200 font-extrabold block uppercase tracking-wider">Active Directories</span>
-                  <p className="text-[10px] text-slate-400 font-semibold max-w-[150px] mx-auto">From smartphones and laptops to keyboards</p>
+                
+                <div className="p-6 rounded-3xl bg-gradient-to-b from-amber-500/5 to-transparent border border-amber-200/50 dark:border-amber-900/40 hover:border-amber-400 transition-all group space-y-1.5">
+                  <span className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500 dark:from-amber-400 dark:to-orange-300 tracking-tight block">10+</span>
+                  <span className="text-xs text-slate-800 dark:text-slate-200 font-black block uppercase tracking-wider">Active Directories</span>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold max-w-[150px] mx-auto">From smartphones and laptops to keyboards</p>
                 </div>
               </div>
             </section>
 
-            {/* Collapsible FAQ accordion section */}
+            {/* Collapsible FAQ accordion section with Teal & Indigo accents */}
             <section className="max-w-4xl mx-auto px-4 py-20 sm:py-28" id="faq">
               <div className="text-center max-w-xl mx-auto mb-16">
-                <span className="text-[10px] font-black text-primary bg-primary/10 px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-3 inline-block">
+                <span className="text-[10px] font-black text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/80 border border-teal-200 dark:border-teal-800 px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-3 inline-block shadow-xs">
                   FAQ Database
                 </span>
-                <h3 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Frequently Answered Queries</h3>
+                <h3 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                  Frequently Answered <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 via-indigo-600 to-purple-600 dark:from-teal-400 dark:via-indigo-300 dark:to-purple-400">Queries</span>
+                </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-semibold">Everything you need to know about our unbiased search indices and data collection pipeline.</p>
               </div>
               <div className="space-y-4">
@@ -875,18 +1034,22 @@ export function AppContent() {
                     <div 
                       key={index} 
                       className={`bg-white dark:bg-[#111827] border rounded-2xl overflow-hidden transition-all duration-300 ${
-                        isActive ? 'border-primary shadow-md' : 'border-slate-200/80 dark:border-slate-800 hover:border-slate-350 dark:hover:border-slate-700 shadow-sm'
+                        isActive 
+                          ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-md bg-gradient-to-r from-indigo-50/30 to-purple-50/20 dark:from-indigo-950/20 dark:to-purple-950/10' 
+                          : 'border-slate-200/80 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800 shadow-sm'
                       }`}
                     >
                       <button
                         onClick={() => setActiveFaqIdx(isActive ? null : index)}
-                        className="w-full text-left p-6 flex justify-between items-center hover:bg-slate-50/20 dark:hover:bg-slate-800/40 transition-colors"
+                        className="w-full text-left p-6 flex justify-between items-center hover:bg-slate-50/40 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
                       >
-                        <span className="font-extrabold text-slate-800 dark:text-slate-100 text-sm sm:text-base">{faq.question}</span>
-                        <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform duration-300 flex-shrink-0 ${isActive ? 'rotate-180 text-primary' : ''}`} />
+                        <span className={`font-extrabold text-sm sm:text-base ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-slate-100'}`}>
+                          {faq.question}
+                        </span>
+                        <ChevronDown className={`h-5 w-5 transition-transform duration-300 flex-shrink-0 ${isActive ? 'rotate-180 text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />
                       </button>
                       {isActive && (
-                        <div className="px-6 pb-6 pt-2 text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed border-t border-slate-50/50 dark:border-slate-800 animate-fade-in font-medium">
+                        <div className="px-6 pb-6 pt-2 text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed border-t border-slate-100 dark:border-slate-800 animate-fade-in font-medium">
                           {faq.answer}
                         </div>
                       )}

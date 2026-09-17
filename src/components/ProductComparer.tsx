@@ -1425,7 +1425,9 @@ export default function ProductComparer({
                             <Battery className="h-4 w-4 text-emerald-500" />
                             <span>Battery Endurance</span>
                           </div>
-                          {prodIsWinner => null}
+                          {!isRowIdentical('Battery') && highlightDiffOnly && (
+                            <span className="text-[8px] font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded">Diff</span>
+                          )}
                         </div>
                       </td>
                       {compareList.map((prod) => {

@@ -335,15 +335,15 @@ export default function BuyingGuides({
           </div>
 
           {/* Best Budget picks */}
-          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 hover:border-teal-300 dark:hover:border-teal-800 rounded-3xl p-5 shadow-sm space-y-4 transition-all duration-300">
-            <span className="text-[10px] font-black text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 px-3 py-1 rounded-xl uppercase tracking-wider block w-fit">
+          <div className="bg-gradient-to-b from-teal-500/10 via-emerald-500/5 to-transparent bg-white dark:bg-[#111827] border border-teal-200/80 dark:border-teal-900/60 hover:border-teal-400 dark:hover:border-teal-700 rounded-3xl p-5 shadow-xs space-y-4 transition-all duration-300">
+            <span className="text-[10px] font-black text-teal-700 dark:text-teal-300 bg-teal-100/80 dark:bg-teal-950/80 border border-teal-200 dark:border-teal-800 px-3 py-1 rounded-xl uppercase tracking-wider block w-fit shadow-2xs">
               Best Budget Picks
             </span>
             {bestBudget.slice(0, 2).map((p) => (
-              <div key={p.id} onClick={() => onProductClick(p)} className="group cursor-pointer flex gap-3 items-center hover:bg-slate-50 dark:hover:bg-[#1A223B] p-2 rounded-2xl transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700">
+              <div key={p.id} onClick={() => onProductClick(p)} className="group cursor-pointer flex gap-3 items-center hover:bg-teal-500/5 dark:hover:bg-[#1A223B] p-2 rounded-2xl transition-all border border-transparent hover:border-teal-200/50 dark:hover:border-slate-700">
                 <SafeProductImage src={p.image} alt={p.name} category={p.category} className="h-12 w-12 object-cover rounded-xl border border-slate-200 dark:border-slate-700 flex-shrink-0" />
                 <div className="min-w-0 flex-grow">
-                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 truncate group-hover:text-[#4F46E5]">{p.name}</h4>
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 truncate group-hover:text-teal-600 dark:group-hover:text-teal-400">{p.name}</h4>
                   <span className="text-[11px] font-black text-slate-900 dark:text-white block mt-0.5">₹{p.price.toLocaleString("en-IN")}</span>
                 </div>
               </div>
@@ -351,15 +351,15 @@ export default function BuyingGuides({
           </div>
 
           {/* Best Premium */}
-          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-800 rounded-3xl p-5 shadow-sm space-y-4 transition-all duration-300">
-            <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 px-3 py-1 rounded-xl uppercase tracking-wider block w-fit">
+          <div className="bg-gradient-to-b from-amber-500/10 via-orange-500/5 to-transparent bg-white dark:bg-[#111827] border border-amber-200/80 dark:border-amber-900/60 hover:border-amber-400 dark:hover:border-amber-700 rounded-3xl p-5 shadow-xs space-y-4 transition-all duration-300">
+            <span className="text-[10px] font-black text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/80 border border-amber-200 dark:border-amber-800 px-3 py-1 rounded-xl uppercase tracking-wider block w-fit shadow-2xs">
               Best Premium Picks
             </span>
             {bestPremium.slice(0, 2).map((p) => (
-              <div key={p.id} onClick={() => onProductClick(p)} className="group cursor-pointer flex gap-3 items-center hover:bg-slate-50 dark:hover:bg-[#1A223B] p-2 rounded-2xl transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700">
+              <div key={p.id} onClick={() => onProductClick(p)} className="group cursor-pointer flex gap-3 items-center hover:bg-amber-500/5 dark:hover:bg-[#1A223B] p-2 rounded-2xl transition-all border border-transparent hover:border-amber-200/50 dark:hover:border-slate-700">
                 <SafeProductImage src={p.image} alt={p.name} category={p.category} className="h-12 w-12 object-cover rounded-xl border border-slate-200 dark:border-slate-700 flex-shrink-0" />
                 <div className="min-w-0 flex-grow">
-                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 truncate group-hover:text-[#4F46E5]">{p.name}</h4>
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 truncate group-hover:text-amber-600 dark:group-hover:text-amber-400">{p.name}</h4>
                   <span className="text-[11px] font-black text-slate-900 dark:text-white block mt-0.5">₹{p.price.toLocaleString("en-IN")}</span>
                 </div>
               </div>
@@ -367,15 +367,15 @@ export default function BuyingGuides({
           </div>
 
           {/* Trending Products */}
-          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800 rounded-3xl p-5 shadow-sm space-y-4 transition-all duration-300">
-            <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 px-3 py-1 rounded-xl uppercase tracking-wider block w-fit">
+          <div className="bg-gradient-to-b from-indigo-500/10 via-purple-500/5 to-transparent bg-white dark:bg-[#111827] border border-indigo-200/80 dark:border-indigo-900/60 hover:border-indigo-400 dark:hover:border-indigo-700 rounded-3xl p-5 shadow-xs space-y-4 transition-all duration-300">
+            <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-300 bg-indigo-100/80 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800 px-3 py-1 rounded-xl uppercase tracking-wider block w-fit shadow-2xs">
               Trending Devices
             </span>
             {trending.slice(0, 2).map((p) => (
-              <div key={p.id} onClick={() => onProductClick(p)} className="group cursor-pointer flex gap-3 items-center hover:bg-slate-50 dark:hover:bg-[#1A223B] p-2 rounded-2xl transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700">
+              <div key={p.id} onClick={() => onProductClick(p)} className="group cursor-pointer flex gap-3 items-center hover:bg-indigo-500/5 dark:hover:bg-[#1A223B] p-2 rounded-2xl transition-all border border-transparent hover:border-indigo-200/50 dark:hover:border-slate-700">
                 <SafeProductImage src={p.image} alt={p.name} category={p.category} className="h-12 w-12 object-cover rounded-xl border border-slate-200 dark:border-slate-700 flex-shrink-0" />
                 <div className="min-w-0 flex-grow">
-                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 truncate group-hover:text-[#4F46E5]">{p.name}</h4>
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400">{p.name}</h4>
                   <span className="text-[11px] font-black text-slate-900 dark:text-white block mt-0.5">₹{p.price.toLocaleString("en-IN")}</span>
                 </div>
               </div>
@@ -503,10 +503,10 @@ export default function BuyingGuides({
                 {/* Sub-tab Pill Navigation */}
                 <div className="flex items-center gap-2 overflow-x-auto pt-4 scrollbar-none">
                   {[
-                    { id: 'checklist', label: 'Spec Checklist', icon: GraduationCap },
-                    { id: 'traps', label: 'Marketing Red Flags', icon: ShieldAlert },
-                    { id: 'ranges', label: 'Price Tiers', icon: Sliders },
-                    { id: 'jargon', label: 'Jargon Buster', icon: HelpCircle }
+                    { id: 'checklist', label: 'Spec Checklist', icon: GraduationCap, activeClass: 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-md shadow-emerald-500/20' },
+                    { id: 'traps', label: 'Marketing Red Flags', icon: ShieldAlert, activeClass: 'bg-gradient-to-r from-rose-600 to-pink-600 text-white border-transparent shadow-md shadow-rose-500/20' },
+                    { id: 'ranges', label: 'Price Tiers', icon: Sliders, activeClass: 'bg-gradient-to-r from-amber-600 to-orange-600 text-white border-transparent shadow-md shadow-amber-500/20' },
+                    { id: 'jargon', label: 'Jargon Buster', icon: HelpCircle, activeClass: 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-transparent shadow-md shadow-indigo-500/20' }
                   ].map(tab => {
                     const Icon = tab.icon;
                     const isActive = activeGuideSubTab === tab.id;
@@ -517,8 +517,8 @@ export default function BuyingGuides({
                         onClick={() => setActiveGuideSubTab(tab.id as any)}
                         className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer border ${
                           isActive
-                            ? 'bg-[#4F46E5] text-white border-[#4F46E5] shadow-xs'
-                            : 'bg-slate-50 dark:bg-[#0B101D] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:text-slate-900 dark:hover:text-white'
+                            ? tab.activeClass
+                            : 'bg-slate-50 dark:bg-[#0B101D] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:text-slate-900 dark:hover:text-white hover:border-slate-300'
                         }`}
                       >
                         <Icon className="h-3.5 w-3.5" />

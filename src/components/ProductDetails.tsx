@@ -761,20 +761,39 @@ export default function ProductDetails({
           {/* Brand Introduction description */}
           <div>
             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Editor Description</h4>
-            <p className="text-slate-600 text-sm leading-relaxed font-medium">{product.description}</p>
+            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed font-medium">{product.description}</p>
+          </div>
+
+          {/* 4 Hero Specs Quadrant with Vibrant Gradients */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {heroSpecs.map((hs, hidx) => {
+              const Icon = hs.icon;
+              return (
+                <div key={hidx} className={`bg-gradient-to-br ${hs.gradient} border rounded-2xl p-3.5 space-y-1 transition-transform hover:-translate-y-0.5 shadow-2xs`}>
+                  <div className="flex items-center gap-1.5">
+                    <Icon className="h-4 w-4" />
+                    <span className="text-[10px] font-black uppercase tracking-wider opacity-80">{hs.sub}</span>
+                  </div>
+                  <div className="text-xs font-black text-slate-900 dark:text-white truncate" title={hs.value}>
+                    {hs.value}
+                  </div>
+                  <span className="text-[9px] text-slate-400 font-bold block">{hs.label}</span>
+                </div>
+              );
+            })}
           </div>
 
           {/* AI Score Audit Card */}
-          <div className="bg-slate-50 border-2 border-slate-150 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-transparent bg-slate-50 dark:bg-[#111827] border-2 border-indigo-200/80 dark:border-indigo-900/60 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xs">
             <div>
-              <span className="text-[10px] font-black text-[#6A73E4] bg-indigo-50 border border-[#6A73E4]/30 px-3 py-1 rounded-md uppercase tracking-wider">
+              <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-300 bg-indigo-100/80 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800 px-3 py-1 rounded-lg uppercase tracking-wider shadow-2xs">
                 WiseFind AI Audit Core
               </span>
-              <h4 className="text-lg font-black text-[#111827] mt-1.5">Buying Intelligence Score</h4>
-              <p className="text-xs text-slate-500 mt-0.5 font-medium">Rating computed from specification parity and real user feedback.</p>
+              <h4 className="text-lg font-black text-slate-900 dark:text-white mt-1.5">Buying Intelligence Score</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Rating computed from specification parity and real user feedback.</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-4xl font-black text-[#111827]">{product.aiScore}</span>
+              <span className="text-4xl font-black text-indigo-600 dark:text-indigo-400">{product.aiScore}</span>
               <span className="text-sm font-bold text-slate-400">/100</span>
             </div>
           </div>

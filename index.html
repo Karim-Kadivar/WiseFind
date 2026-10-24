@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WiseFind React — Find Smarter. Choose Wisely.</title>
+    <meta name="description" content="WiseFind helps you find the best products for your wallet. Compare real prices across Amazon, Flipkart, Croma, and retail stores with honest, unbiased comparisons." />
+    <meta property="og:title" content="WiseFind React — Find Smarter. Choose Wisely." />
+    <meta property="og:description" content="WiseFind helps you find the best products for your wallet. Compare real prices across Amazon, Flipkart, Croma, and retail stores with honest, unbiased comparisons." />
+    <meta property="og:image" content="/logo.png" />
+    <meta property="og:type" content="website" />
+    <script>
+      (function() {
+        try {
+          var theme = sessionStorage.getItem('wisefind_theme') || localStorage.getItem('wisefind_theme');
+          if (!theme) {
+            theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+          var metaTheme = document.createElement('meta');
+          metaTheme.name = 'theme-color';
+          metaTheme.content = theme === 'dark' ? '#050505' : '#ffffff';
+          document.head.appendChild(metaTheme);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

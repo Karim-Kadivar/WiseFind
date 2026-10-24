@@ -1,0 +1,27 @@
+[
+  {
+    "id": "req-sample-1",
+    "customerName": "Rohit Sharma",
+    "customerEmail": "rohit.s@example.com",
+    "category": "Electronics & Gadgets",
+    "productName": "Samsung Galaxy S24 Ultra",
+    "message": "Should I buy S24 Ultra now on Flipkart with Axis 5% cashback or wait for Diwali sale?",
+    "timestamp": "2 hours ago",
+    "status": "resolved",
+    "reply": "Wait for the Diwali sale on Flipkart! The S24 Ultra typically receives a net price drop of ~12% plus instant Axis card discount.",
+    "createdAt": "2026-10-23T16:01:38.787Z",
+    "repliedAt": "2026-10-24T08:56:37.997Z"
+  },
+  {
+    "id": "req-sample-2",
+    "customerName": "Priya Mehra",
+    "customerEmail": "priya.m@techcorp.in",
+    "category": "Laptops",
+    "productName": "MacBook Air M3 vs Dell XPS 13",
+    "message": "Need a machine for intensive Docker and React Native development. Will 16GB Air M3 throttle?",
+    "timestamp": "Yesterday",
+    "status": "replied",
+    "reply": "For Docker containers, 16GB unified memory is the bare minimum. Air M3 is fanless so under 30min builds it will throttle ~15%. Suggest 16GB Pro M3 or Dell XPS 16GB with active fans.",
+    "createdAt": "2026-10-22T18:01:38.787Z"
+  }
+]

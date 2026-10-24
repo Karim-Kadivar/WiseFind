@@ -1,0 +1,2012 @@
+import React, { useState, useMemo } from 'react';
+import { SafeProductImage } from './SafeProductImage.jsx';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  Trash2, Plus, Star, BarChart2, CheckCircle2, Scale, Cpu, Monitor, Battery, Camera, 
+  Shield, Award, Sparkles, Zap, TrendingUp, DollarSign, Activity, Copy, CheckCheck, 
+  Search, Crown, SlidersHorizontal, ChevronDown, ChevronUp, X, ExternalLink, ShoppingBag, 
+  ArrowUpRight, Tag, Layers, Check, Trophy, HeartHandshake, Eye, Flame, Filter, Compass
+} from 'lucide-react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Cell } from 'recharts';
+import { generatePlatformComparison, PLATFORM_INFO } from '../data/platformPricing.js';
+import { PlatformLogo } from './PlatformLogo.jsx';
+
+export default function ProductComparer({ compareList, onRemoveFromCompare, onClearCompare, allProducts, onAddToCompare }) {
+    const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
+    const [selectedSubCategoryFilter, setSelectedSubCategoryFilter] = useState('All');
+    const [activeChartTab, setActiveChartTab] = useState('summary');
+    const [showAnalytics, setShowAnalytics] = useState(true);
+    const [highlightDiffOnly, setHighlightDiffOnly] = useState(false);
+    const [tableSearchQuery, setTableSearchQuery] = useState('');
+    const [copiedComparison, setCopiedComparison] = useState(false);
+    const [showPersonaGuide, setShowPersonaGuide] = useState(true);
+    const [showAddProductDrawer, setShowAddProductDrawer] = useState(false);
+    const [drawerSearchQuery, setDrawerSearchQuery] = useState('');
+    const [emptySlotCategory, setEmptySlotCategory] = useState({});
+    const [emptySlotSubCategory, setEmptySlotSubCategory] = useState({});
+
+    // Extract all unique spec keys from compared products
+    const allSpecKeys = Array.from(new Set(compareList.flatMap((p) => Object.keys(p.specs || {}))));
+    // Intelligent context: if comparing items, guide them to the same category
+    const activeCategory = compareList.length > 0 ? compareList[0].category : null;
+
+    // Helper to format clean product title without repeating brand
+    const formatFullName = (brand, name) => {
+        if (!brand) return name || '';
+        if (!name) return brand || '';
+        if (name.toLowerCase().startsWith(brand.toLowerCase())) return name;
+        return `${brand} ${name}`;
+    };
+
+    // All unique categories across all products
+    const allCategories = useMemo(() => {
+        return ['All', ...Array.from(new Set(allProducts.map(p => p.category).filter(Boolean)))];
+    }, [allProducts]);
+
+    // Dynamic subcategories based on current selected category
+    const allSubcategories = useMemo(() => {
+        const filtered = selectedCategoryFilter === 'All'
+            ? allProducts
+            : allProducts.filter(p => p.category === selectedCategoryFilter);
+        const subs = Array.from(new Set(filtered.map(p => p.subCategory).filter(Boolean)));
+        return ['All', ...subs];
+    }, [allProducts, selectedCategoryFilter]);
+
+    // Helper to get subcategories for any specified category
+    const getSubcategoriesForCategory = (cat) => {
+        const filtered = !cat || cat === 'All'
+            ? allProducts
+            : allProducts.filter(p => p.category === cat);
+        return Array.from(new Set(filtered.map(p => p.subCategory).filter(Boolean)));
+    };
+
+    // Category switch handler resetting subcategory
+    const handleCategoryChange = (cat) => {
+        setSelectedCategoryFilter(cat);
+        setSelectedSubCategoryFilter('All');
+    };
+
+    // Filter available products to add by category, subcategory and search query (Enforces like-for-like category matching)
+    const availableToCompare = useMemo(() => {
+        return allProducts
+            .filter((p) => !compareList.some((item) => item.id === p.id))
+            .filter((p) => {
+                // If compare board already has items, strictly constrain to same category
+                if (activeCategory) {
+                    const catA = (p.category || '').toLowerCase().trim();
+                    const catB = activeCategory.toLowerCase().trim();
+                    if (catA !== catB && !catA.includes(catB) && !catB.includes(catA)) return false;
+                } else if (selectedCategoryFilter !== 'All' && p.category !== selectedCategoryFilter) {
+                    return false;
+                }
+                if (selectedSubCategoryFilter !== 'All' && p.subCategory !== selectedSubCategoryFilter) return false;
+                if (drawerSearchQuery.trim()) {
+                    const q = drawerSearchQuery.toLowerCase();
+                    return (
+                        p.name.toLowerCase().includes(q) ||
+                        p.brand.toLowerCase().includes(q) ||
+                        (p.subCategory && p.subCategory.toLowerCase().includes(q))
+                    );
+                }
+                return true;
+            });
+    }, [allProducts, compareList, activeCategory, selectedCategoryFilter, selectedSubCategoryFilter, drawerSearchQuery]);
+
+    // Multi-platform live prices & deals calculation for each compared product
+    const productsPlatformData = useMemo(() => {
+        const map = {};
+        compareList.forEach((prod) => {
+            try {
+                const comparison = generatePlatformComparison(prod);
+                let minSalePrice = Infinity;
+                let cheapestPlat = comparison.platforms[0];
+                comparison.platforms.forEach((plat) => {
+                    if (plat.salePrice < minSalePrice) {
+                        minSalePrice = plat.salePrice;
+                        cheapestPlat = plat;
+                    }
+                });
+                map[prod.id] = {
+                    ...comparison,
+                    cheapestPlatform: cheapestPlat,
+                    cheapestPrice: minSalePrice,
+                    savingsVsMRP: Math.max(0, comparison.mrp - minSalePrice)
+                };
+            } catch (err) {
+                console.error("Platform pricing error for", prod.name, err);
+            }
+        });
+        return map;
+    }, [compareList]);
+
+    // Core spec keys that we will render with custom styled rows
+    const coreSpecKeys = ['Display', 'Processor', 'Storage', 'Memory', 'Battery', 'Camera', 'Warranty'];
+    // Remaining keys to prevent double render but still display all details
+    const remainingSpecKeys = allSpecKeys.filter((key) => !coreSpecKeys.some((ck) => ck.toLowerCase() === key.toLowerCase()));
+
+    // ==========================================
+    // STATISTICAL & ANALYTICS CALCULATIONS
+    // ==========================================
+    // 1. Average Rating Calculation
+    const averageRating = compareList.length > 0
+        ? compareList.reduce((acc, p) => acc + (p.rating || 0), 0) / compareList.length
+        : 0;
+    // 2. Median Price Calculation
+    const calculateMedianPrice = (items) => {
+        if (items.length === 0)
+            return 0;
+        const sorted = [...items.map(p => p.price)].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        return sorted.length % 2 !== 0
+            ? sorted[mid]
+            : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+    };
+    const medianPrice = calculateMedianPrice(compareList);
+    // 3. Mean (Average) Price
+    const meanPrice = compareList.length > 0
+        ? Math.round(compareList.reduce((acc, p) => acc + p.price, 0) / compareList.length)
+        : 0;
+    // 4. Min, Max, and Price Spread
+    const minPrice = compareList.length > 0 ? Math.min(...compareList.map(p => p.price)) : 0;
+    const maxPrice = compareList.length > 0 ? Math.max(...compareList.map(p => p.price)) : 0;
+    const priceSpread = maxPrice - minPrice;
+    // 5. Average AI WiseScore
+    const averageWiseScore = compareList.length > 0
+        ? Math.round(compareList.reduce((acc, p) => acc + (p.aiScore || 0), 0) / compareList.length)
+        : 0;
+    // 6. Top Rated Product
+    const topRatedProduct = compareList.length > 0
+        ? [...compareList].sort((a, b) => (b.rating || 0) - (a.rating || 0))[0]
+        : null;
+    // 7. Value Leader (Highest Score to Price Ratio)
+    const valueLeaderProduct = compareList.length > 0
+        ? [...compareList].sort((a, b) => (b.aiScore / b.price) - (a.aiScore / a.price))[0]
+        : null;
+    // 8. Flagship Performance Leader
+    const flagshipLeaderProduct = compareList.length > 0
+        ? [...compareList].sort((a, b) => b.aiScore - a.aiScore)[0]
+        : null;
+    // Quick value metric generator
+    const getValueForMoney = (p) => {
+        if (p.price < 40000 && p.aiScore >= 90) {
+            return { label: 'Outstanding Value', desc: 'Budget Champion', color: 'bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border-emerald-500/30' };
+        }
+        if (p.isBestPremium || p.isEditorChoice) {
+            return { label: 'Premium Value', desc: 'Editor\'s Choice', color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30' };
+        }
+        if (p.aiScore >= 93) {
+            return { label: 'Excellent Value', desc: 'Top Spec Choice', color: 'bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border-emerald-500/30' };
+        }
+        return { label: 'High Value', desc: 'Solid Investment', color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700' };
+    };
+    // Helper to extract specific performance highlights
+    const getPerformanceMetrics = (p) => {
+        const specsStr = Object.values(p.specs).join(' ').toLowerCase();
+        if (specsStr.includes('a17 pro') || specsStr.includes('m3') || specsStr.includes('snapdragon 8 gen 3') || specsStr.includes('m4')) {
+            return { label: 'Extreme Flagship', rating: '9.8 / 10', details: 'Industry-leading silicon, superb multi-core benchmarks and hardware ray-tracing.' };
+        }
+        if (specsStr.includes('snapdragon 8 gen 2') || specsStr.includes('m2') || specsStr.includes('i7') || specsStr.includes('h-series')) {
+            return { label: 'Heavy Productivity', rating: '9.3 / 10', details: 'High-power H-series or flagship-tier CPU suited for intensive multitasking & gaming.' };
+        }
+        if (p.category === 'Laptops' || p.category === 'Smartphones') {
+            return { label: 'Capable Daily Multitasker', rating: '8.8 / 10', details: 'Smooth rendering, responsive active core load-balancing.' };
+        }
+        return { label: 'High-Fidelity Tuning', rating: '9.0 / 10', details: 'Optimized response curve, customized DSP hardware processing.' };
+    };
+    const getPerformanceValue = (p) => {
+        const metrics = getPerformanceMetrics(p);
+        const ratingStr = metrics.rating.split(' ')[0];
+        const parsed = parseFloat(ratingStr);
+        if (!isNaN(parsed))
+            return Math.round(parsed * 10);
+        if (p.price > 80000)
+            return 96;
+        if (p.price > 50000)
+            return 88;
+        if (p.price > 30000)
+            return 78;
+        return 68;
+    };
+    const getBatteryValue = (p) => {
+        const batterySpec = (p.specs['Battery'] || p.specs['Battery Life'] || '').toLowerCase();
+        const hrsMatch = batterySpec.match(/(\d+(?:\.\d+)?)\s*(?:hours|hrs)/);
+        if (hrsMatch) {
+            const hrs = parseFloat(hrsMatch[1]);
+            return Math.min(100, Math.round((hrs / 22) * 100)); // Normalize 22 hours as 100
+        }
+        const mahMatch = batterySpec.match(/(\d+)\s*mah/);
+        if (mahMatch) {
+            const mah = parseInt(mahMatch[1], 10);
+            return Math.min(100, Math.round((mah / 6000) * 100)); // Normalize 6000 mAh as 100
+        }
+        if (p.category === 'Smartphones')
+            return 82;
+        if (p.category === 'Laptops')
+            return 75;
+        if (p.category === 'Headphones')
+            return 95;
+        return 80;
+    };
+    // Winner Highlights Map
+    const priceWinnerId = useMemo(() => {
+        if (compareList.length < 2)
+            return null;
+        return [...compareList].sort((a, b) => a.price - b.price)[0]?.id;
+    }, [compareList]);
+    const ratingWinnerId = useMemo(() => {
+        if (compareList.length < 2)
+            return null;
+        return [...compareList].sort((a, b) => b.rating - a.rating)[0]?.id;
+    }, [compareList]);
+    const aiScoreWinnerId = useMemo(() => {
+        if (compareList.length < 2)
+            return null;
+        return [...compareList].sort((a, b) => b.aiScore - a.aiScore)[0]?.id;
+    }, [compareList]);
+    const batteryWinnerId = useMemo(() => {
+        if (compareList.length < 2)
+            return null;
+        return [...compareList].sort((a, b) => getBatteryValue(b) - getBatteryValue(a))[0]?.id;
+    }, [compareList]);
+    const perfWinnerId = useMemo(() => {
+        if (compareList.length < 2)
+            return null;
+        return [...compareList].sort((a, b) => getPerformanceValue(b) - getPerformanceValue(a))[0]?.id;
+    }, [compareList]);
+
+    // Ultimate Best Buy composite calculation & crown
+    const ultimateBestBuy = useMemo(() => {
+        if (compareList.length < 2) return null;
+
+        const scored = compareList.map((prod) => {
+            const pData = productsPlatformData[prod.id];
+            const lowestPrice = pData ? pData.cheapestPrice : prod.price;
+            const wiseScoreNorm = prod.aiScore || 80;
+            const ratingNorm = (prod.rating || 4) * 20;
+            const perfScore = getPerformanceValue(prod);
+            const battScore = getBatteryValue(prod);
+
+            const maxP = Math.max(...compareList.map(p => p.price));
+            const minP = Math.min(...compareList.map(p => p.price));
+            const priceSpread = maxP - minP || 1;
+            const priceEfficiency = 100 - (((lowestPrice - minP) / priceSpread) * 55);
+
+            // Composite formula: balanced across silicon power, value-per-rupee, user rating & WiseScore
+            const compositeScore = (
+                (wiseScoreNorm * 0.35) +
+                (priceEfficiency * 0.25) +
+                (ratingNorm * 0.20) +
+                (perfScore * 0.10) +
+                (battScore * 0.10)
+            );
+
+            return {
+                product: prod,
+                compositeScore,
+                lowestPrice,
+                platformData: pData,
+                cheapestPlatform: pData?.cheapestPlatform,
+                perfScore,
+                battScore
+            };
+        });
+
+        scored.sort((a, b) => b.compositeScore - a.compositeScore);
+        const winner = scored[0];
+        const maxPrice = Math.max(...compareList.map(p => p.price));
+        const savingsVsHighest = Math.max(0, maxPrice - winner.lowestPrice);
+
+        let rationale = `Earns the Ultimate Best Buy crown with a leading ${winner.product.aiScore}/100 WiseScore and superior price-to-specification efficiency. `;
+        if (winner.cheapestPlatform) {
+            rationale += `Secures the lowest live market deal at ₹${winner.lowestPrice.toLocaleString('en-IN')} on ${winner.cheapestPlatform.platformName}. `;
+        }
+        if (winner.product.rating >= 4.7) {
+            rationale += `Highly acclaimed by buyers with a ${winner.product.rating}★ satisfaction rating and class-leading endurance.`;
+        } else {
+            rationale += `Delivers the absolute highest value-per-rupee with zero critical compromises in build or silicon stability.`;
+        }
+
+        return {
+            ...winner,
+            rationale,
+            savingsVsHighest
+        };
+    }, [compareList, productsPlatformData]);
+
+    // Helper to get winner column highlight class across all rows in comparison matrix
+    const getWinnerColClass = (prodId) => {
+        if (compareList.length < 2) return '';
+        const isWinner = ultimateBestBuy?.product?.id === prodId;
+        return isWinner ? 'border-x-2 border-x-amber-400/80 dark:border-x-amber-400/70 bg-amber-500/[0.035] dark:bg-amber-500/[0.05]' : '';
+    };
+
+    // Check if a spec row is identical across all compared products
+    const isRowIdentical = (specKey) => {
+        if (compareList.length <= 1)
+            return false;
+        const firstVal = (compareList[0].specs[specKey] || '').trim().toLowerCase();
+        return compareList.every(p => ((p.specs[specKey] || '').trim().toLowerCase()) === firstVal);
+    };
+    // Copy structured comparison summary
+    const handleCopyComparison = () => {
+        try {
+            let text = `⚡ PriceWise Matrix Comparison (${compareList.length} Models)\n`;
+            text += `Category: ${activeCategory || 'Multi-Category'}\n\n`;
+            compareList.forEach(p => {
+                text += `📱 ${formatFullName(p.brand, p.name)}\n`;
+                text += `• Price: ₹${p.price.toLocaleString("en-IN")}\n`;
+                text += `• AI WiseScore: ${p.aiScore}/100\n`;
+                text += `• User Rating: ${p.rating}/5.0\n`;
+                Object.entries(p.specs).slice(0, 4).forEach(([k, v]) => {
+                    text += `• ${k}: ${v}\n`;
+                });
+                text += `\n`;
+            });
+            navigator.clipboard.writeText(text);
+            setCopiedComparison(true);
+            setTimeout(() => setCopiedComparison(false), 3000);
+        }
+        catch (err) {
+            console.error(err);
+        }
+    };
+    // Generate Buyer Persona Verdicts
+    const personaRecommendations = useMemo(() => {
+        if (compareList.length === 0)
+            return [];
+        return compareList.map((p) => {
+            let persona = 'Balanced All-Rounder';
+            let tag = 'General Recommendation';
+            let badgeColor = 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800';
+            if (p.id === priceWinnerId) {
+                persona = 'Value Champions & Budget Maximizers';
+                tag = 'Lowest Total Out-of-Pocket Cost';
+                badgeColor = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
+            }
+            else if (p.id === perfWinnerId || p.id === aiScoreWinnerId) {
+                persona = 'Heavy Power Users, Creatives & Gamers';
+                tag = 'Uncompromising Silicon Speed';
+                badgeColor = 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800';
+            }
+            else if (p.id === batteryWinnerId) {
+                persona = 'Frequent Travelers & Road Warriors';
+                tag = 'Maximum Unplugged Endurance';
+                badgeColor = 'bg-teal-50 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border-teal-200 dark:border-teal-800';
+            }
+            else if (p.id === ratingWinnerId) {
+                persona = 'Verified Customer Favorite';
+                tag = 'Highest Long-Term Satisfaction';
+                badgeColor = 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800';
+            }
+            return {
+                product: p,
+                persona,
+                tag,
+                badgeColor,
+                reason: p.aiRecommendation || `${formatFullName(p.brand, p.name)} delivers specialized hardware engineering tailored for users prioritizing ${tag.toLowerCase()}.`
+            };
+        });
+    }, [compareList, priceWinnerId, perfWinnerId, aiScoreWinnerId, batteryWinnerId, ratingWinnerId]);
+    const getWiseScoreColorClass = (score) => {
+        if (score >= 90)
+            return { bg: 'bg-emerald-500/10 dark:bg-emerald-950/40', border: 'border-emerald-500/30', text: 'text-emerald-600 dark:text-emerald-400', hex: '#10B981' };
+        if (score >= 75)
+            return { bg: 'bg-purple-500/10 dark:bg-purple-950/40', border: 'border-purple-500/30', text: 'text-purple-600 dark:text-purple-400', hex: '#8B5CF6' };
+        if (score >= 60)
+            return { bg: 'bg-amber-500/10 dark:bg-amber-950/40', border: 'border-amber-500/30', text: 'text-amber-600 dark:text-amber-400', hex: '#F59E0B' };
+        if (score >= 40)
+            return { bg: 'bg-orange-500/10 dark:bg-orange-950/40', border: 'border-orange-500/30', text: 'text-orange-600 dark:text-orange-400', hex: '#F97316' };
+        return { bg: 'bg-rose-500/10 dark:bg-rose-950/40', border: 'border-rose-500/30', text: 'text-rose-600 dark:text-rose-400', hex: '#EF4444' };
+    };
+    // Color palette matching the uploaded logo theme
+    const getProductColor = (index) => {
+        const colors = ['#3B82F6', '#8B5CF6', '#FBBF24', '#10B981'];
+        return colors[index % colors.length];
+    };
+    const maxItems = 4;
+    const emptySlotsCount = maxItems - compareList.length;
+    // Preparing Data for Recharts
+    const barChartData = compareList.map((p) => {
+        const perfScore = getPerformanceValue(p);
+        const battScore = getBatteryValue(p);
+        const fullName = formatFullName(p.brand, p.name);
+        return {
+            name: fullName.length > 20 ? `${fullName.slice(0, 17)}...` : fullName,
+            fullName: fullName,
+            'WiseScore': p.aiScore,
+            'Performance Benchmark': perfScore,
+            'Battery Endurance': battScore,
+        };
+    });
+    const subjects = [
+        { key: 'WiseScore', label: 'WiseScore (AI)' },
+        { key: 'Performance', label: 'Performance' },
+        { key: 'Battery', label: 'Battery Life' },
+        { key: 'Rating', label: 'User Rating' },
+        { key: 'Value', label: 'Price Value' }
+    ];
+    const radarChartData = subjects.map(subj => {
+        const item = { subject: subj.label };
+        compareList.forEach(p => {
+            const perf = getPerformanceValue(p);
+            const batt = getBatteryValue(p);
+            const ratingScore = Math.round(p.rating * 20);
+            const maxPriceInCatalog = Math.max(...allProducts.map(i => i.price), 150000);
+            const minPriceInCatalog = Math.min(...allProducts.map(i => i.price), 10000);
+            const priceRange = maxPriceInCatalog - minPriceInCatalog || 1;
+            const priceScore = Math.round(100 - ((p.price - minPriceInCatalog) / priceRange) * 70);
+            let val = 80;
+            if (subj.key === 'WiseScore')
+                val = p.aiScore;
+            else if (subj.key === 'Performance')
+                val = perf;
+            else if (subj.key === 'Battery')
+                val = batt;
+            else if (subj.key === 'Rating')
+                val = ratingScore;
+            else if (subj.key === 'Value')
+                val = priceScore;
+            item[p.name] = val;
+        });
+        return item;
+    });
+    const bangChartData = compareList.map((p) => {
+        const val = Math.round((p.aiScore / (p.price / 10000)) * 10) / 10;
+        const fullName = formatFullName(p.brand, p.name);
+        return {
+            name: fullName.length > 20 ? `${fullName.slice(0, 17)}...` : fullName,
+            fullName: fullName,
+            'Bang for the Buck Index': val,
+            'Price (INR)': p.price,
+        };
+    });
+    // Custom tooltips to maintain brand styling
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            return (<div className="bg-white dark:bg-[#111827] border-2 border-slate-200 dark:border-slate-700 p-3 rounded-2xl shadow-xl space-y-1.5" id="recharts-custom-tooltip">
+          <p className="text-xs font-black text-[#111827] dark:text-white">{label}</p>
+          <div className="space-y-1">
+            {payload.map((entry, index) => (<div key={index} className="flex items-center gap-2 text-[11px] font-bold">
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }}/>
+                <span className="text-slate-500 dark:text-slate-400">{entry.name}:</span>
+                <span className="text-[#111827] dark:text-white font-extrabold">
+                  {entry.value}{entry.name.includes('Bang') ? ' index' : entry.name.includes('Price') ? ' INR' : ' pts'}
+                </span>
+              </div>))}
+          </div>
+        </div>);
+        }
+        return null;
+    };
+    return (<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10" id="product-comparer-panel">
+      {/* Title Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b-2 border-slate-150 dark:border-slate-800 pb-6 mb-8">
+        <div>
+          <div className="flex items-center gap-2 bg-gradient-to-r from-purple-500/10 to-amber-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider w-fit mb-3">
+            <Sparkles className="h-3.5 w-3.5 text-amber-500"/>
+            <span>Verified Hardware Matrix</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-[#111827] dark:text-white tracking-tight flex items-center gap-2.5">
+            <Scale className="h-7 w-7 text-[#7C3AED] dark:text-purple-400"/>
+            Side-by-Side Comparison Matrix
+          </h2>
+          <p className="text-sm text-[#475569] dark:text-slate-300 mt-1 font-medium">
+            Compare up to <span className="font-bold text-[#111827] dark:text-white">4 models</span> with real-time visual analytics, average ratings, median price calculations, and deep spec benchmarks.
+          </p>
+        </div>
+        
+        {compareList.length > 0 && (<div className="flex items-center gap-3 flex-wrap">
+            <button onClick={() => setShowAnalytics(!showAnalytics)} className="px-4 py-2.5 rounded-xl text-xs font-black text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-800 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm">
+              <BarChart2 className="h-3.5 w-3.5"/>
+              <span>{showAnalytics ? 'Hide Analytics Dashboard' : 'Show Analytics Dashboard'}</span>
+            </button>
+
+            <button onClick={onClearCompare} className="px-4 py-2.5 rounded-xl text-xs font-black text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-800 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm">
+              <Trash2 className="h-3.5 w-3.5"/>
+              <span>Clear Matrix</span>
+            </button>
+          </div>)}
+      </div>
+
+      {compareList.length === 0 ? (<div className="bg-white dark:bg-[#111827] border-2 border-slate-100 dark:border-slate-800 rounded-3xl p-8 sm:p-14 text-center shadow-sm">
+          <div className="h-20 w-20 bg-purple-50 dark:bg-purple-950/60 rounded-3xl flex items-center justify-center text-purple-600 dark:text-purple-400 mx-auto mb-6 shadow-sm">
+            <Scale className="h-10 w-10 animate-pulse"/>
+          </div>
+          <h3 className="text-2xl sm:text-3xl font-black text-[#111827] dark:text-white tracking-tight">Your Comparison Board is Empty</h3>
+          <p className="text-[#475569] dark:text-slate-300 text-xs sm:text-sm mt-2 max-w-lg mx-auto font-medium leading-relaxed">
+            Select categories and subcategories below to add products, compare multi-store prices, unlock AI WiseScores, and discover the Ultimate Best Buy.
+          </p>
+          
+          {/* Category Tabs */}
+          <div className="flex flex-wrap justify-center gap-2 mt-8 mb-3">
+            {allCategories.map(cat => (<button key={cat} onClick={() => handleCategoryChange(cat)} className={`px-4 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer border ${selectedCategoryFilter === cat
+                    ? 'bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white border-transparent shadow-md scale-105'
+                    : 'bg-[#F8FAFC] dark:bg-slate-800 text-[#475569] dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
+                {cat}
+              </button>))}
+          </div>
+
+          {/* Subcategory Pills */}
+          {allSubcategories.length > 1 && (<div className="flex flex-wrap justify-center items-center gap-1.5 mb-6 max-w-3xl mx-auto">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1">
+                <Filter className="h-3 w-3" /> Subcategory:
+              </span>
+              {allSubcategories.map(subCat => (<button key={subCat} onClick={() => setSelectedSubCategoryFilter(subCat)} className={`px-3 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer border ${selectedSubCategoryFilter === subCat
+                      ? 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700 shadow-xs'
+                      : 'bg-white dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+                  {subCat === 'All' ? 'All Subcategories' : subCat}
+                </button>))}
+            </div>)}
+
+          {/* Quick Search */}
+          <div className="max-w-md mx-auto mb-8 relative">
+            <Search className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={drawerSearchQuery}
+              onChange={(e) => setDrawerSearchQuery(e.target.value)}
+              placeholder="Search products by model, brand, or specs..."
+              className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-purple-500 shadow-xs"
+            />
+            {drawerSearchQuery && (
+              <button onClick={() => setDrawerSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          {availableToCompare.length > 0 ? (<div className="mt-4 max-w-5xl mx-auto text-left">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
+                  Quick Add Products ({availableToCompare.length} available):
+                </span>
+                <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+                  Select up to 4 models to face-off
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
+                {availableToCompare.slice(0, 8).map((prod) => (<motion.button 
+                    key={prod.id} 
+                    onClick={() => onAddToCompare(prod)} 
+                    whileHover={{ y: -5, scale: 1.02 }}
+                    transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                    className="flex flex-col justify-between items-start text-left bg-white dark:bg-slate-800/80 hover:bg-[#F8FAFC] dark:hover:bg-slate-800 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 hover:border-purple-500 transition-all cursor-pointer group shadow-xs hover:shadow-lg"
+                  >
+                    <div className="flex items-center gap-3 w-full mb-3">
+                      <div className="h-12 w-12 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-1.5 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+                        <SafeProductImage src={prod.image} alt={prod.name} category={prod.category} className="max-h-full max-w-full object-contain"/>
+                      </div>
+                      <div className="truncate flex-1 min-w-0">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-wider block truncate">{prod.brand}</span>
+                          {prod.subCategory && (
+                            <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1 rounded truncate">
+                              {prod.subCategory}
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-bold text-[#111827] dark:text-white text-xs truncate group-hover:text-purple-600 dark:group-hover:text-purple-400 mt-0.5">{prod.name}</h4>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center w-full mt-1 pt-2.5 border-t border-slate-100 dark:border-slate-700">
+                      <div>
+                        <span className="text-xs font-black text-slate-900 dark:text-white block">₹{prod.price.toLocaleString("en-IN")}</span>
+                        <span className="text-[9px] font-bold text-amber-500 flex items-center gap-0.5">
+                          <Star className="h-2.5 w-2.5 fill-current" /> {prod.rating}★
+                        </span>
+                      </div>
+                      <span className="text-[10px] bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 px-2.5 py-1 rounded-lg font-black text-purple-600 dark:text-purple-300 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                        Add +
+                      </span>
+                    </div>
+                  </motion.button>))}
+              </div>
+            </div>) : (
+              <div className="p-8 text-center bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                <p className="text-xs font-bold text-slate-500">No products match "{drawerSearchQuery || selectedSubCategoryFilter}". Try clearing your filters.</p>
+                <button
+                  onClick={() => { setSelectedCategoryFilter('All'); setSelectedSubCategoryFilter('All'); setDrawerSearchQuery(''); }}
+                  className="mt-3 px-3 py-1 rounded-xl bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 text-xs font-black"
+                >
+                  Reset Filters
+                </button>
+              </div>
+            )}
+        </div>) : (<div className="space-y-8">
+          {/* ========================================================================= */}
+          {/* VISUAL ANALYTICS SUMMARY PANEL (Average Rating & Median Price Engine)     */}
+          {/* ========================================================================= */}
+          <AnimatePresence>
+            {showAnalytics && (<motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.3 }} className="bg-white dark:bg-[#111827] border-2 border-slate-150 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-md space-y-6" id="analytics-summary-card">
+                {/* Header section with category and controls */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+                  <div className="flex items-center gap-3.5">
+                    <div className="h-11 w-11 bg-gradient-to-br from-[#3B82F6] via-[#7C3AED] to-[#A855F7] rounded-2xl flex items-center justify-center text-white shadow-md shadow-purple-500/20">
+                      <Activity className="h-6 w-6"/>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg sm:text-xl font-black text-[#111827] dark:text-white tracking-tight">
+                          Visual Analytics & Decision Telemetry
+                        </h3>
+                        <span className="bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-black text-[9px] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                          Live Metrics
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#475569] dark:text-slate-400 font-medium">
+                        Real-time statistical synthesis of user ratings, median market values, and specification indices across {compareList.length} selected products.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Analytics Navigation Tab Selector */}
+                  <div className="flex bg-[#F8FAFC] dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl self-stretch sm:self-auto overflow-x-auto">
+                    <button onClick={() => setActiveChartTab('summary')} className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${activeChartTab === 'summary'
+                    ? 'bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-sm border border-slate-200/50 dark:border-slate-700'
+                    : 'text-[#475569] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white'}`}>
+                      Summary Matrix
+                    </button>
+                    <button onClick={() => setActiveChartTab('bar')} className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${activeChartTab === 'bar'
+                    ? 'bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-sm border border-slate-200/50 dark:border-slate-700'
+                    : 'text-[#475569] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white'}`}>
+                      Benchmarking
+                    </button>
+                    <button onClick={() => setActiveChartTab('radar')} className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${activeChartTab === 'radar'
+                    ? 'bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-sm border border-slate-200/50 dark:border-slate-700'
+                    : 'text-[#475569] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white'}`}>
+                      Radar Profile
+                    </button>
+                    <button onClick={() => setActiveChartTab('bang')} className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${activeChartTab === 'bang'
+                    ? 'bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-sm border border-slate-200/50 dark:border-slate-700'
+                    : 'text-[#475569] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white'}`}>
+                      Bang For Buck
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4 CORE ANALYTICS KPI TILES */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="analytics-kpi-tiles">
+                  
+                  {/* KPI 1: AVERAGE USER RATING */}
+                  <div className="bg-gradient-to-br from-amber-500/5 to-amber-500/15 dark:from-amber-950/20 dark:to-amber-900/10 border-2 border-amber-500/20 rounded-2xl p-4 sm:p-5 relative overflow-hidden flex flex-col justify-between">
+                    <div className="absolute top-0 right-0 p-3 opacity-10 text-amber-500">
+                      <Star className="h-16 w-16"/>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                          Average Rating
+                        </span>
+                        <span className="bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full">
+                          {(averageRating * 20).toFixed(0)}% Approval
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                          {averageRating.toFixed(2)}
+                        </span>
+                        <span className="text-sm font-bold text-slate-400">/ 5.0</span>
+                      </div>
+                      {/* Star icons indicator */}
+                      <div className="flex items-center gap-1 mt-2">
+                        {[1, 2, 3, 4, 5].map((star) => (<Star key={star} className={`h-4 w-4 ${star <= Math.round(averageRating)
+                        ? 'text-amber-400 fill-amber-400'
+                        : 'text-slate-300 dark:text-slate-600'}`}/>))}
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-amber-500/20 text-[11px] font-semibold text-slate-600 dark:text-slate-300 flex items-center justify-between">
+                      <span>Top Rated:</span>
+                      <span className="font-extrabold text-slate-900 dark:text-white truncate max-w-[130px]" title={topRatedProduct?.name}>
+                        {topRatedProduct?.brand} ({topRatedProduct?.rating}★)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* KPI 2: MEDIAN PRICE */}
+                  <div className="bg-gradient-to-br from-purple-500/5 to-purple-500/15 dark:from-purple-950/20 dark:to-purple-900/10 border-2 border-purple-500/20 rounded-2xl p-4 sm:p-5 relative overflow-hidden flex flex-col justify-between">
+                    <div className="absolute top-0 right-0 p-3 opacity-10 text-purple-500">
+                      <DollarSign className="h-16 w-16"/>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-400">
+                          Median Price
+                        </span>
+                        <span className="bg-purple-500/20 text-purple-700 dark:text-purple-300 text-[10px] font-black px-2 py-0.5 rounded-full">
+                          Midpoint Benchmark
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                          ₹{medianPrice.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-1.5">
+                        Mean: <span className="text-slate-800 dark:text-slate-200 font-extrabold">₹{meanPrice.toLocaleString('en-IN')}</span>
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-purple-500/20 text-[11px] font-semibold text-slate-600 dark:text-slate-300 flex items-center justify-between">
+                      <span>Price Range:</span>
+                      <span className="font-extrabold text-slate-900 dark:text-white">
+                        ₹{(minPrice / 1000).toFixed(0)}k - ₹{(maxPrice / 1000).toFixed(0)}k
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* KPI 3: AVERAGE AI WISESCORE */}
+                  <div className="bg-gradient-to-br from-blue-500/5 to-blue-500/15 dark:from-blue-950/20 dark:to-blue-900/10 border-2 border-blue-500/20 rounded-2xl p-4 sm:p-5 relative overflow-hidden flex flex-col justify-between">
+                    <div className="absolute top-0 right-0 p-3 opacity-10 text-blue-500">
+                      <Sparkles className="h-16 w-16"/>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-400">
+                          Average WiseScore
+                        </span>
+                        <span className="bg-blue-500/20 text-blue-700 dark:text-blue-300 text-[10px] font-black px-2 py-0.5 rounded-full">
+                          AI Spec Index
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                          {averageWiseScore}
+                        </span>
+                        <span className="text-sm font-bold text-slate-400">/ 100</span>
+                      </div>
+                      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-1.5">
+                        Aggregate silicon & thermal rating
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-blue-500/20 text-[11px] font-semibold text-slate-600 dark:text-slate-300 flex items-center justify-between">
+                      <span>Spec Leader:</span>
+                      <span className="font-extrabold text-slate-900 dark:text-white truncate max-w-[130px]" title={flagshipLeaderProduct?.name}>
+                        {flagshipLeaderProduct?.name} ({flagshipLeaderProduct?.aiScore})
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* KPI 4: VALUE / BANG-FOR-BUCK CHAMPION */}
+                  <div className="bg-gradient-to-br from-emerald-500/5 to-emerald-500/15 dark:from-emerald-950/20 dark:to-emerald-900/10 border-2 border-emerald-500/20 rounded-2xl p-4 sm:p-5 relative overflow-hidden flex flex-col justify-between">
+                    <div className="absolute top-0 right-0 p-3 opacity-10 text-emerald-500">
+                      <Award className="h-16 w-16"/>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                          Value Champion
+                        </span>
+                        <span className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-black px-2 py-0.5 rounded-full">
+                          Bang For Buck
+                        </span>
+                      </div>
+                      <div className="truncate">
+                        <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight block truncate" title={valueLeaderProduct?.name}>
+                          {valueLeaderProduct?.name}
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-1.5 flex items-center gap-1">
+                        <TrendingUp className="h-3 w-3"/>
+                        <span>Maximum spec efficiency per Rupee</span>
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-emerald-500/20 text-[11px] font-semibold text-slate-600 dark:text-slate-300 flex items-center justify-between">
+                      <span>Priced at:</span>
+                      <span className="font-extrabold text-slate-900 dark:text-white">
+                        ₹{valueLeaderProduct?.price.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* VISUAL ANALYTICS EXPANDED VIEWS */}
+                {activeChartTab === 'summary' && (<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                    
+                    {/* VISUAL 1: MEDIAN PRICE SPECTRUM AXIS */}
+                    <div className="bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-4 w-4 text-purple-600 dark:text-purple-400"/>
+                          <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                            Median Price Range Spectrum
+                          </h4>
+                        </div>
+                        <span className="text-[10px] font-black text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full">
+                          Median: ₹{medianPrice.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        Compare where each product is positioned relative to the group's median benchmark.
+                      </p>
+
+                      {/* Spectrum Axis Bar */}
+                      <div className="space-y-4 pt-2">
+                        {compareList.map((prod, idx) => {
+                        const delta = prod.price - medianPrice;
+                        const isAbove = delta > 0;
+                        const isAt = delta === 0;
+                        const percentOfMax = maxPrice > 0 ? (prod.price / maxPrice) * 100 : 50;
+                        return (<div key={prod.id} className="space-y-1.5">
+                              <div className="flex justify-between items-center text-xs">
+                                <div className="flex items-center gap-2 truncate max-w-[200px] sm:max-w-xs">
+                                  <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getProductColor(idx) }}/>
+                                  <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{formatFullName(prod.brand, prod.name)}</span>
+                                </div>
+                                <div className="flex items-center gap-2 font-bold">
+                                  <span className="text-slate-900 dark:text-white font-extrabold">₹{prod.price.toLocaleString('en-IN')}</span>
+                                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5 ${isAt
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                : isAbove
+                                    ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>
+                                    {isAt ? 'At Median' : isAbove ? `+₹${delta.toLocaleString('en-IN')}` : `-₹${Math.abs(delta).toLocaleString('en-IN')}`}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden relative">
+                                <div className="h-full rounded-full transition-all duration-500" style={{
+                                width: `${Math.max(10, Math.min(100, percentOfMax))}%`,
+                                backgroundColor: getProductColor(idx)
+                            }}/>
+                              </div>
+                            </div>);
+                    })}
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between text-[10px] text-slate-400 font-bold">
+                        <span>Low: ₹{minPrice.toLocaleString('en-IN')}</span>
+                        <span className="text-purple-600 dark:text-purple-400 font-extrabold">Median Anchor: ₹{medianPrice.toLocaleString('en-IN')}</span>
+                        <span>High: ₹{maxPrice.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+
+                    {/* VISUAL 2: AVERAGE RATING COMPARISON MATRIX */}
+                    <div className="bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Star className="h-4 w-4 text-amber-500"/>
+                          <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                            Rating Dispersion vs Average ({averageRating.toFixed(2)}★)
+                          </h4>
+                        </div>
+                        <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                          Category Benchmark
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        Visualizing how each product measures up to consumer satisfaction thresholds.
+                      </p>
+
+                      {/* Rating Progress Bars */}
+                      <div className="space-y-4 pt-2">
+                        {compareList.map((prod, idx) => {
+                        const ratingDelta = (prod.rating || 0) - averageRating;
+                        const ratingPercent = ((prod.rating || 0) / 5) * 100;
+                        return (<div key={prod.id} className="space-y-1.5">
+                              <div className="flex justify-between items-center text-xs">
+                                <div className="flex items-center gap-2 truncate max-w-[200px] sm:max-w-xs">
+                                  <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getProductColor(idx) }}/>
+                                  <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{formatFullName(prod.brand, prod.name)}</span>
+                                </div>
+                                <div className="flex items-center gap-2 font-bold">
+                                  <span className="text-slate-900 dark:text-white font-extrabold flex items-center gap-1">
+                                    <Star className="h-3 w-3 fill-amber-400 text-amber-400"/>
+                                    {prod.rating}
+                                  </span>
+                                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${Math.abs(ratingDelta) < 0.05
+                                ? 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                : ratingDelta > 0
+                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                    : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                                    {Math.abs(ratingDelta) < 0.05 ? 'At Avg' : ratingDelta > 0 ? `+${ratingDelta.toFixed(1)}★ Above` : `${ratingDelta.toFixed(1)}★ Below`}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden relative">
+                                <div className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-amber-400 to-amber-500" style={{ width: `${ratingPercent}%` }}/>
+                              </div>
+                            </div>);
+                    })}
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between text-[10px] text-slate-400 font-bold">
+                        <span>0.0 Rating Floor</span>
+                        <span className="text-amber-500 font-extrabold">Avg Rating Benchmark: {averageRating.toFixed(2)}★</span>
+                        <span>5.0 Perfect Rating</span>
+                      </div>
+                    </div>
+
+                  </div>)}
+
+                {/* CHARTS TABS: BENCHMARKING, RADAR & BANG-FOR-BUCK */}
+                {activeChartTab !== 'summary' && (<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Left explanation and score tracking */}
+                    <div className="space-y-4">
+                      <div className="bg-[#F8FAFC] dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-full">
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Active Insights</span>
+                          <h4 className="text-sm font-black text-[#111827] dark:text-white flex items-center gap-1.5">
+                            <TrendingUp className="h-4 w-4 text-[#22C55E]"/>
+                            {activeChartTab === 'bar' && 'Performance & Endurance Benchmarking'}
+                            {activeChartTab === 'radar' && 'Multidimensional Specifications Radar'}
+                            {activeChartTab === 'bang' && 'Value Efficiency Index (Bang per ₹10k)'}
+                          </h4>
+                          <p className="text-xs text-[#475569] dark:text-slate-400 leading-relaxed font-semibold">
+                            {activeChartTab === 'bar' && 'This grouping presents performance scores alongside measured battery indexes. High silicon benchmarks paired with endurance.'}
+                            {activeChartTab === 'radar' && 'The radar plots WiseScore, performance, user rating, battery, and price metrics. A larger web indicates an all-round flagship.'}
+                            {activeChartTab === 'bang' && 'Calculates pure specifications-to-price ratio. A higher value means exceptional hardware strength for every Rupee spent.'}
+                          </p>
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-200/60 dark:border-slate-800 mt-4 space-y-3">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Compared Scorecards</span>
+                          <div className="space-y-2">
+                            {compareList.map((prod, idx) => {
+                        const scoreDetails = getWiseScoreColorClass(prod.aiScore);
+                        return (<div key={prod.id} className="flex justify-between items-center text-xs">
+                                  <div className="flex items-center gap-2 truncate">
+                                    <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getProductColor(idx) }}/>
+                                    <span className="font-extrabold text-[#111827] dark:text-white truncate">{prod.name}</span>
+                                  </div>
+                                  <span className={`font-black px-2 py-0.5 rounded-md text-[10px] ${scoreDetails.bg} ${scoreDetails.text} border ${scoreDetails.border}`}>
+                                    {prod.aiScore} pts
+                                  </span>
+                                </div>);
+                    })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right side charts canvas */}
+                    <div className="lg:col-span-2 h-[280px] sm:h-[320px] min-h-[280px] w-full bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 flex items-center justify-center">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={260}>
+                        {activeChartTab === 'bar' ? (<BarChart data={barChartData} margin={{ top: 20, right: 10, left: -10, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3}/>
+                            <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: '700', fill: '#94A3B8' }} axisLine={false} tickLine={false}/>
+                            <YAxis domain={[0, 100]} tick={{ fontSize: 10, fontWeight: '700', fill: '#94A3B8' }} axisLine={false} tickLine={false}/>
+                            <Tooltip content={<CustomTooltip />}/>
+                            <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: '700', color: '#94A3B8' }}/>
+                            <Bar dataKey="WiseScore" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={20}>
+                              {barChartData.map((entry, index) => (<Cell key={`cell-w-${index}`} fill={getProductColor(index)}/>))}
+                            </Bar>
+                            <Bar dataKey="Performance Benchmark" fill="#7C3AED" radius={[4, 4, 0, 0]} barSize={12} opacity={0.8}/>
+                            <Bar dataKey="Battery Endurance" fill="#10B981" radius={[4, 4, 0, 0]} barSize={12} opacity={0.8}/>
+                          </BarChart>) : activeChartTab === 'radar' ? (<RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarChartData}>
+                            <PolarGrid stroke="#334155" opacity={0.4}/>
+                            <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: '800', fill: '#94A3B8' }}/>
+                            <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 8, fontWeight: '600' }}/>
+                            <Tooltip content={<CustomTooltip />}/>
+                            {compareList.map((p, idx) => {
+                              const fullName = formatFullName(p.brand, p.name);
+                              const shortName = fullName.length > 14 ? fullName.slice(0, 12) + '..' : fullName;
+                              return (
+                                <Radar key={p.id} name={shortName} dataKey={p.name} stroke={getProductColor(idx)} fill={getProductColor(idx)} fillOpacity={0.2} strokeWidth={2}/>
+                              );
+                            })}
+                            <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: 10, fontWeight: '700', color: '#94A3B8' }}/>
+                          </RadarChart>) : (<BarChart layout="vertical" data={bangChartData} margin={{ top: 20, right: 20, left: 30, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#334155" opacity={0.3}/>
+                            <XAxis type="number" tick={{ fontSize: 10, fontWeight: '700', fill: '#94A3B8' }} axisLine={false} tickLine={false}/>
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fontWeight: '800', fill: '#94A3B8' }} axisLine={false} tickLine={false} width={110}/>
+                            <Tooltip content={<CustomTooltip />}/>
+                            <Bar dataKey="Bang for the Buck Index" fill="#10B981" radius={[0, 4, 4, 0]} barSize={16}>
+                              {bangChartData.map((entry, index) => (<Cell key={`cell-b-${index}`} fill={getProductColor(index)}/>))}
+                            </Bar>
+                          </BarChart>)}
+                      </ResponsiveContainer>
+                    </div>
+                  </div>)}
+              </motion.div>)}
+          </AnimatePresence>
+
+          {/* ========================================================================= */}
+          {/* AI BUYER PERSONA & VERDICT GUIDE                                          */}
+          {/* ========================================================================= */}
+          {personaRecommendations.length > 0 && (<div className="bg-gradient-to-br from-purple-900/10 via-indigo-900/5 to-transparent border border-purple-200/80 dark:border-purple-800/60 rounded-3xl p-5 sm:p-6 shadow-sm mb-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-purple-500/10 dark:bg-purple-500/20 text-[#7C3AED] dark:text-purple-400">
+                    <Sparkles className="h-5 w-5"/>
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-[#111827] dark:text-white">
+                      AI Buyer Persona Match & Smart Verdicts
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      Tailored recommendations based on real-world silicon benchmarks, thermals, and price-to-spec ratios.
+                    </p>
+                  </div>
+                </div>
+
+                <button onClick={() => setShowPersonaGuide(!showPersonaGuide)} className="text-xs font-black text-purple-600 dark:text-purple-400 flex items-center gap-1 hover:underline cursor-pointer">
+                  <span>{showPersonaGuide ? 'Collapse Guide' : 'Expand Guide'}</span>
+                  {showPersonaGuide ? <ChevronUp className="h-4 w-4"/> : <ChevronDown className="h-4 w-4"/>}
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {showPersonaGuide && (<motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                    {personaRecommendations.map(({ product, persona, tag, badgeColor, reason }, idx) => (<div key={product.id} className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: getProductColor(idx) }}/>
+                        
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <span className="text-[10px] font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider">
+                              {product.brand}
+                            </span>
+                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${badgeColor}`}>
+                              {tag}
+                            </span>
+                          </div>
+
+                          <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 line-clamp-1 mb-1">
+                            {product.name}
+                          </h4>
+
+                          <div className="text-xs font-black text-indigo-600 dark:text-indigo-400 mb-2">
+                            Best For: <span className="text-slate-800 dark:text-slate-200 font-bold">{persona}</span>
+                          </div>
+
+                          <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                            {reason}
+                          </p>
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                          <span className="font-black text-slate-900 dark:text-white">₹{product.price.toLocaleString('en-IN')}</span>
+                          <span className="text-[10px] font-black bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-md">
+                            WiseScore {product.aiScore}/100
+                          </span>
+                        </div>
+                      </div>))}
+                  </motion.div>)}
+              </AnimatePresence>
+            </div>)}
+
+          {/* ========================================================================= */}
+          {/* ULTIMATE BEST BUY SHOWCASE BANNER                                          */}
+          {/* ========================================================================= */}
+          {ultimateBestBuy && (
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/15 via-purple-500/10 to-indigo-500/15 dark:from-[#1E1B4B]/80 dark:via-[#1E1B4B]/50 dark:to-[#0F172A] border-2 border-amber-400/60 dark:border-amber-500/50 p-6 sm:p-8 shadow-2xl"
+              id="ultimate-best-buy-banner"
+            >
+              {/* Background ambient glow */}
+              <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-amber-400/20 dark:bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 bg-purple-500/20 dark:bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                  {/* Crown & Product Image */}
+                  <div className="relative shrink-0">
+                    <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-white dark:bg-slate-900 border-2 border-amber-400 dark:border-amber-500/80 p-2 shadow-lg flex items-center justify-center overflow-hidden">
+                      <SafeProductImage
+                        src={ultimateBestBuy.product.image}
+                        alt={ultimateBestBuy.product.name}
+                        category={ultimateBestBuy.product.category}
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+                    <div className="absolute -top-3 -right-2 h-8 w-8 bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 rounded-full flex items-center justify-center shadow-md ring-2 ring-white dark:ring-slate-900">
+                      <Crown className="h-4 w-4 fill-slate-950 stroke-[2.5]" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-sm">
+                        <Trophy className="h-3 w-3 fill-current" />
+                        Ultimate Best Buy Verdict
+                      </span>
+                      <span className="text-[10px] font-black text-amber-700 dark:text-amber-300 bg-amber-100/90 dark:bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-800">
+                        WiseScore {ultimateBestBuy.product.aiScore}/100
+                      </span>
+                      {ultimateBestBuy.savingsVsHighest > 0 && (
+                        <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
+                          Saves ₹{ultimateBestBuy.savingsVsHighest.toLocaleString('en-IN')} vs Highest
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                      {formatFullName(ultimateBestBuy.product.brand, ultimateBestBuy.product.name)}
+                    </h3>
+
+                    <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed mt-1.5 max-w-2xl">
+                      {ultimateBestBuy.rationale}
+                    </p>
+
+                    {/* Advantage Badges */}
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-white/90 dark:bg-slate-900/90 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center gap-1 shadow-2xs">
+                        <Zap className="h-3 w-3 text-amber-500" />
+                        {getPerformanceMetrics(ultimateBestBuy.product).label}
+                      </span>
+                      <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-white/90 dark:bg-slate-900/90 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center gap-1 shadow-2xs">
+                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                        {ultimateBestBuy.product.rating}★ User Approval
+                      </span>
+                      {ultimateBestBuy.cheapestPlatform && (
+                        <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 shadow-2xs">
+                          <Tag className="h-3 w-3" />
+                          Cheapest on {ultimateBestBuy.cheapestPlatform.platformName}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pricing & Direct Store CTA */}
+                <div className="shrink-0 flex flex-col items-start lg:items-end w-full lg:w-auto pt-4 lg:pt-0 border-t lg:border-t-0 border-amber-200/50 dark:border-slate-800">
+                  <div className="text-left lg:text-right mb-2.5">
+                    <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 block">
+                      Best Live Deal Across Platforms
+                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+                        ₹{ultimateBestBuy.lowestPrice.toLocaleString('en-IN')}
+                      </span>
+                      {ultimateBestBuy.platformData?.mrp && (
+                        <span className="text-xs font-bold text-slate-400 line-through">
+                          ₹{ultimateBestBuy.platformData.mrp.toLocaleString('en-IN')}
+                        </span>
+                      )}
+                    </div>
+                    {ultimateBestBuy.cheapestPlatform && (
+                      <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400">
+                        Verified deal on {ultimateBestBuy.cheapestPlatform.platformName}
+                      </span>
+                    )}
+                  </div>
+
+                  {ultimateBestBuy.cheapestPlatform && (
+                    <a
+                      href={ultimateBestBuy.cheapestPlatform.productUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <span>Buy Ultimate Best Buy Deal</span>
+                      <ExternalLink className="h-3.5 w-3.5 stroke-[2.5]" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* MAIN SPECIFICATIONS TABLE MATRIX                                          */}
+          {/* ========================================================================= */}
+          <div className="bg-white dark:bg-[#111827] border-2 border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm" id="comparison-specs-table-card">
+            
+            {/* Top Toolbar & Filter Control */}
+            <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-5 sm:px-6 py-4 flex flex-wrap justify-between items-center gap-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                {activeCategory && (<span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                    Scope: <span className="font-black text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 px-2.5 py-0.5 rounded-md ml-1">{activeCategory}</span>
+                  </span>)}
+                <span className="text-[11px] text-slate-400 dark:text-slate-500 font-bold hidden sm:inline">
+                  Median: <span className="text-slate-700 dark:text-slate-200 font-black">₹{medianPrice.toLocaleString('en-IN')}</span> • Avg Rating: <span className="text-amber-500 font-black">{averageRating.toFixed(2)}★</span>
+                </span>
+              </div>
+
+              {/* Action Controls */}
+              <div className="flex items-center gap-2.5 flex-wrap w-full sm:w-auto justify-end">
+                {/* Add Product Button */}
+                {emptySlotsCount > 0 && (
+                  <button
+                    onClick={() => setShowAddProductDrawer(!showAddProductDrawer)}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-indigo-600 hover:to-purple-700 shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>{showAddProductDrawer ? 'Close Selector' : 'Add Model'}</span>
+                  </button>
+                )}
+
+                {/* Search Spec in Table */}
+                <div className="relative min-w-[170px]">
+                  <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
+                  <input type="text" value={tableSearchQuery} onChange={(e) => setTableSearchQuery(e.target.value)} placeholder="Search spec attributes..." className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-white dark:bg-[#0B101D] border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#4F46E5]"/>
+                  {tableSearchQuery && (<button onClick={() => setTableSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                      <X className="h-3 w-3"/>
+                    </button>)}
+                </div>
+
+                {/* Differences Only Switch */}
+                <button onClick={() => setHighlightDiffOnly(!highlightDiffOnly)} className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer border ${highlightDiffOnly
+                ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                : 'bg-white dark:bg-[#0B101D] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'}`} title="Toggle highlights on attributes that differ between models">
+                  <SlidersHorizontal className="h-3.5 w-3.5"/>
+                  <span>{highlightDiffOnly ? 'Differences Highlighted' : 'Highlight Differences'}</span>
+                </button>
+
+                {/* Copy Comparison Summary */}
+                <button onClick={handleCopyComparison} className="px-3 py-1.5 rounded-xl text-xs font-black bg-white dark:bg-[#0B101D] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm" title="Copy comparison summary to clipboard">
+                  {copiedComparison ? <CheckCheck className="h-3.5 w-3.5 text-emerald-500"/> : <Copy className="h-3.5 w-3.5"/>}
+                  <span>{copiedComparison ? 'Copied Summary!' : 'Copy Summary'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Expandable Category & Subcategory Product Selector Drawer */}
+            <AnimatePresence>
+              {showAddProductDrawer && emptySlotsCount > 0 && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="bg-slate-50/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 p-5 overflow-hidden"
+                >
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div>
+                        <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                          <Layers className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                          Choose Products by Category & Subcategory to Compare
+                        </h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {emptySlotsCount} {emptySlotsCount === 1 ? 'slot' : 'slots'} available in comparison matrix
+                        </p>
+                      </div>
+
+                      {/* Search in Drawer */}
+                      <div className="relative w-full sm:w-64">
+                        <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="text"
+                          value={drawerSearchQuery}
+                          onChange={(e) => setDrawerSearchQuery(e.target.value)}
+                          placeholder="Search brand, model..."
+                          className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Category Selector Pills */}
+                    <div className="flex flex-wrap gap-1.5 items-center">
+                      <span className="text-[10px] font-black uppercase text-slate-400 mr-1">Category:</span>
+                      {activeCategory ? (
+                        <span className="px-3 py-1 rounded-xl text-[11px] font-black bg-purple-600 text-white border border-purple-600 shadow-xs flex items-center gap-1.5">
+                          <span>🔒 {activeCategory}</span>
+                          <span className="text-[9px] bg-purple-800/80 px-1.5 py-0.5 rounded uppercase">Like-for-Like Enforced</span>
+                        </span>
+                      ) : (
+                        allCategories.map((cat) => (
+                          <button
+                            key={cat}
+                            onClick={() => handleCategoryChange(cat)}
+                            className={`px-3 py-1 rounded-xl text-[11px] font-black transition-all cursor-pointer border ${
+                              selectedCategoryFilter === cat
+                                ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Subcategory Selector Pills */}
+                    {allSubcategories.length > 1 && (
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        <span className="text-[10px] font-black uppercase text-slate-400 mr-1">Subcategory:</span>
+                        {allSubcategories.map((subCat) => (
+                          <button
+                            key={subCat}
+                            onClick={() => setSelectedSubCategoryFilter(subCat)}
+                            className={`px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer border ${
+                              selectedSubCategoryFilter === subCat
+                                ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700'
+                                : 'bg-white/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-50'
+                            }`}
+                          >
+                            {subCat === 'All' ? 'All Subcategories' : subCat}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Product Cards Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2 max-h-64 overflow-y-auto pr-1">
+                      {availableToCompare.slice(0, 12).map((prod) => (
+                        <div
+                          key={prod.id}
+                          onClick={() => {
+                            onAddToCompare(prod);
+                            if (compareList.length + 1 >= maxItems) {
+                              setShowAddProductDrawer(false);
+                            }
+                          }}
+                          className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-purple-500 dark:hover:border-purple-400 transition-all cursor-pointer flex flex-col justify-between group shadow-2xs hover:shadow-md"
+                        >
+                          <div>
+                            <div className="h-10 w-full flex items-center justify-center mb-2">
+                              <SafeProductImage
+                                src={prod.image}
+                                alt={prod.name}
+                                category={prod.category}
+                                className="max-h-full max-w-full object-contain"
+                              />
+                            </div>
+                            <span className="text-[8px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-wider block truncate">
+                              {prod.brand}
+                            </span>
+                            <h5 className="text-[11px] font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-purple-600 dark:group-hover:text-purple-400">
+                              {prod.name}
+                            </h5>
+                          </div>
+                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                            <span className="text-[11px] font-black text-slate-800 dark:text-slate-200">
+                              ₹{prod.price.toLocaleString('en-IN')}
+                            </span>
+                            <span className="text-[9px] font-black text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-1.5 py-0.5 rounded">
+                              + Add
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="overflow-x-auto">
+              <table className="w-full table-fixed min-w-[900px] border-collapse">
+                {/* Table Header with Product Cards */}
+                <thead>
+                  <tr className="border-b-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                    {/* Attributes index col */}
+                    <th className="w-1/5 min-w-[200px] p-5 text-left align-middle sticky left-0 bg-slate-50 dark:bg-slate-900 z-20 border-r border-slate-200 dark:border-slate-800">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">COMPARATIVE INDEX</span>
+                      <span className="text-[11px] font-black text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 px-3 py-1 rounded-xl mt-2 inline-block">
+                        Comparing {compareList.length} of {maxItems}
+                      </span>
+                    </th>
+                    
+                    {/* Active Products Col */}
+                    {compareList.map((prod, idx) => {
+                const delta = prod.price - medianPrice;
+                const isAbove = delta > 0;
+                const isAt = delta === 0;
+                const isPriceLeader = prod.id === priceWinnerId;
+                const isAiLeader = prod.id === aiScoreWinnerId;
+                const isRatingLeader = prod.id === ratingWinnerId;
+                const isUltimateWinner = compareList.length > 1 && prod.id === ultimateBestBuy?.product?.id;
+                return (
+                  <th
+                    key={prod.id}
+                    className={`p-5 text-left align-top relative group border-r border-slate-100 dark:border-slate-800 last:border-r-0 transition-all ${
+                      isUltimateWinner
+                        ? 'border-t-4 border-t-amber-400 border-x-2 border-x-amber-400 dark:border-x-amber-400 bg-gradient-to-b from-amber-500/15 via-amber-500/5 to-transparent shadow-xl z-20'
+                        : ''
+                    }`}
+                  >
+                    {/* Delete item button */}
+                    <button onClick={() => onRemoveFromCompare(prod.id)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500 p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-all cursor-pointer" title="Remove product">
+                      <Trash2 className="h-4 w-4"/>
+                    </button>
+
+                    {/* Winner Crown Ribbon Banner */}
+                    {isUltimateWinner && (
+                      <div className="mb-2.5 px-3 py-1 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 text-[10px] font-black uppercase flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/30 ring-2 ring-white dark:ring-slate-900">
+                        <Crown className="h-3.5 w-3.5 fill-slate-950 stroke-[2.5]" />
+                        <span>#1 Best Buy Winner</span>
+                      </div>
+                    )}
+
+                    {/* Top Indicator Color strip */}
+                    <div className="h-1.5 w-14 rounded-full mb-3" style={{ backgroundColor: isUltimateWinner ? '#F59E0B' : getProductColor(idx) }}/>
+
+                    {/* Winner Badges */}
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {isPriceLeader && (<span className="text-[9px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                          <Crown className="h-2.5 w-2.5"/> Best Deal
+                        </span>)}
+                      {isAiLeader && (<span className="text-[9px] font-black bg-purple-600 text-white px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                          <Sparkles className="h-2.5 w-2.5"/> AI Winner
+                        </span>)}
+                      {isRatingLeader && (<span className="text-[9px] font-black bg-amber-500 text-slate-900 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                          <Star className="h-2.5 w-2.5 fill-current"/> Top Rated
+                        </span>)}
+                    </div>
+
+                    {/* Image container */}
+                    <div className="h-16 w-16 rounded-2xl bg-white dark:bg-slate-800 overflow-hidden border-2 border-slate-100 dark:border-slate-700 p-1.5 mb-3 flex items-center justify-center shadow-sm">
+                      <SafeProductImage src={prod.image} alt={prod.name} category={prod.category} className="max-h-full max-w-full object-contain"/>
+                    </div>
+
+                    <span className="text-[9px] font-black text-purple-600 dark:text-purple-400 block uppercase tracking-widest">{prod.brand}</span>
+                    <h4 className="font-black text-[#111827] dark:text-white text-xs sm:text-sm line-clamp-2 mt-0.5" title={prod.name}>
+                      {prod.name}
+                    </h4>
+                    <p className="text-sm sm:text-base font-black text-[#111827] dark:text-white mt-1.5">₹{prod.price.toLocaleString("en-IN")}</p>
+                    <span className={`inline-block mt-1 text-[9px] font-black px-1.5 py-0.5 rounded ${isAt
+                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                  : isAbove
+                      ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                      : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>
+                      {isAt ? 'Exact Median' : isAbove ? `+₹${delta.toLocaleString('en-IN')} vs Median` : `-₹${Math.abs(delta).toLocaleString('en-IN')} vs Median`}
+                    </span>
+
+                    {/* Multi-Store Best Deal Badge & Direct Buy */}
+                    {productsPlatformData[prod.id]?.cheapestPlatform && (
+                      <div className="mt-3 pt-2.5 border-t border-slate-200/80 dark:border-slate-800">
+                        <div className="flex items-center justify-between text-[10px] mb-1.5">
+                          <span className="text-slate-400 font-bold">Lowest Online:</span>
+                          <span className="font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                            ₹{productsPlatformData[prod.id].cheapestPrice.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                        <a
+                          href={productsPlatformData[prod.id].cheapestPlatform.productUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full py-1.5 px-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-[10px] font-black flex items-center justify-center gap-1 shadow-xs transition-all hover:shadow-md cursor-pointer group/btn"
+                        >
+                          <span>Buy on {productsPlatformData[prod.id].cheapestPlatform.platformName}</span>
+                          <ArrowUpRight className="h-3 w-3 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+                        </a>
+                      </div>
+                    )}
+                  </th>);
+            })}
+
+                    {/* Empty Slots Column(s) with Category & Subcategory Picker */}
+                    {Array.from({ length: emptySlotsCount }).map((_, idx) => {
+                      const slotCat = activeCategory || emptySlotCategory[idx] || 'All';
+                      const slotSub = emptySlotSubCategory[idx] || 'All';
+                      const slotSubs = getSubcategoriesForCategory(slotCat);
+                      const slotAvailableProducts = allProducts
+                        .filter((p) => !compareList.some((item) => item.id === p.id))
+                        .filter((p) => {
+                          if (slotCat !== 'All' && p.category !== slotCat) return false;
+                          if (slotSub !== 'All' && p.subCategory !== slotSub) return false;
+                          return true;
+                        });
+
+                      return (
+                        <th key={`empty-${idx}`} className="p-4 text-left align-top border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/40 dark:bg-slate-900/40">
+                          <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 h-full flex flex-col justify-between items-center text-center space-y-3 min-h-[180px] bg-white/60 dark:bg-slate-900/60 backdrop-blur-xs">
+                            <div className="w-full flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                              <span className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-wider flex items-center gap-1">
+                                <Plus className="h-3 w-3"/> Slot {compareList.length + idx + 1}
+                              </span>
+                              <span className="text-[9px] font-bold text-slate-400">Add to compare</span>
+                            </div>
+
+                            {/* Category selector */}
+                            <div className="w-full space-y-2 text-left">
+                              <div>
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">
+                                  1. Category {activeCategory && <span className="text-purple-500 font-black">(Locked for Like-for-Like)</span>}
+                                </label>
+                                {activeCategory ? (
+                                  <div className="w-full bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 rounded-lg px-2.5 py-1.5 text-[10px] text-purple-800 dark:text-purple-200 font-black flex items-center justify-between shadow-2xs">
+                                    <span className="truncate">🔒 {activeCategory}</span>
+                                    <span className="text-[8px] bg-purple-200/60 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 uppercase px-1.5 py-0.5 rounded font-black shrink-0 ml-1">Same Category Only</span>
+                                  </div>
+                                ) : (
+                                  <select
+                                    value={slotCat}
+                                    onChange={(e) => {
+                                      setEmptySlotCategory(prev => ({ ...prev, [idx]: e.target.value }));
+                                      setEmptySlotSubCategory(prev => ({ ...prev, [idx]: 'All' }));
+                                    }}
+                                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-[10px] text-slate-700 dark:text-slate-200 font-bold focus:outline-none focus:border-purple-500 cursor-pointer shadow-xs"
+                                  >
+                                    {allCategories.map(cat => (
+                                      <option key={cat} value={cat}>{cat === 'All' ? '🌐 All Categories' : cat}</option>
+                                    ))}
+                                  </select>
+                                )}
+                              </div>
+
+                              {/* Subcategory selector */}
+                              {slotSubs.length > 0 && (
+                                <div>
+                                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">
+                                    2. Subcategory
+                                  </label>
+                                  <select
+                                    value={slotSub}
+                                    onChange={(e) => setEmptySlotSubCategory(prev => ({ ...prev, [idx]: e.target.value }))}
+                                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-[10px] text-slate-700 dark:text-slate-200 font-bold focus:outline-none focus:border-purple-500 cursor-pointer shadow-xs"
+                                  >
+                                    <option value="All">All Subcategories</option>
+                                    {slotSubs.map(sub => (
+                                      <option key={sub} value={sub}>{sub}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
+
+                              {/* Product selector */}
+                              <div>
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">
+                                  3. Select Model
+                                </label>
+                                {slotAvailableProducts.length > 0 ? (
+                                  <select
+                                    onChange={(e) => {
+                                      const selected = allProducts.find(p => p.id === e.target.value);
+                                      if (selected) onAddToCompare(selected);
+                                      e.target.value = '';
+                                    }}
+                                    className="w-full bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/40 dark:to-indigo-950/40 border border-purple-200 dark:border-purple-800 rounded-lg px-2 py-1.5 text-[10px] text-purple-900 dark:text-purple-200 font-black focus:outline-none focus:border-purple-500 cursor-pointer shadow-xs"
+                                  >
+                                    <option value="">-- Choose Product ({slotAvailableProducts.length}) --</option>
+                                    {slotAvailableProducts.map((p) => (
+                                      <option key={p.id} value={p.id}>
+                                        {formatFullName(p.brand, p.name)} (₹{p.price.toLocaleString("en-IN")})
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <p className="text-[10px] text-slate-400 font-bold italic py-1 text-center">No models matching filters</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+
+                {/* Table Body Content Matrix */}
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  
+                  {/* Multi-Store Direct Purchase Links & Best Deal Matrix */}
+                  {(!tableSearchQuery || 'stores platforms amazon flipkart croma reliance vijay price deals buy'.includes(tableSearchQuery.toLowerCase())) && (
+                    <tr className="bg-gradient-to-r from-slate-50/70 via-emerald-50/20 to-slate-50/70 dark:from-slate-900/70 dark:via-emerald-950/20 dark:to-slate-900/70">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                            <ShoppingBag className="h-4 w-4 text-emerald-500" />
+                            <span className="font-black text-xs text-slate-900 dark:text-white">STORE COMPARISON</span>
+                          </div>
+                          <span className="text-[9px] font-bold text-slate-400 block leading-tight">
+                            Live prices & direct buying links across 5 stores. Lowest price highlighted in green.
+                          </span>
+                        </div>
+                      </td>
+
+                      {compareList.map((prod) => {
+                        const pData = productsPlatformData[prod.id];
+                        const platforms = pData?.platforms || [];
+                        const cheapestPlat = pData?.cheapestPlatform;
+
+                        return (
+                          <td key={`stores-${prod.id}`} className={`p-3.5 border-r border-slate-100 dark:border-slate-800 last:border-r-0 align-top ${getWinnerColClass(prod.id)}`}>
+                            <div className="space-y-2">
+                              {platforms.map((plat) => {
+                                const isCheapest = plat.platformName === cheapestPlat?.platformName;
+
+                                return (
+                                  <div
+                                    key={plat.platformName}
+                                    className={`p-2 rounded-xl border transition-all ${
+                                      isCheapest
+                                        ? 'bg-emerald-500/10 border-emerald-500/40 shadow-xs ring-1 ring-emerald-500/30 dark:bg-emerald-950/40 dark:border-emerald-500/50'
+                                        : 'bg-white dark:bg-slate-800/80 border-slate-200/80 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between mb-1">
+                                      <div className="flex items-center gap-1.5">
+                                        <PlatformLogo platformId={plat.platformId} size="xs" />
+                                        <span className="text-[11px] font-black text-slate-900 dark:text-white">
+                                          {plat.platformName}
+                                        </span>
+                                      </div>
+                                      {isCheapest && (
+                                        <span className="text-[8px] font-black uppercase px-1.5 py-0.5 bg-emerald-500 text-white rounded-md tracking-wider">
+                                          Lowest Deal
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-[11px] pt-1">
+                                      <span className="font-extrabold text-slate-900 dark:text-white">
+                                        ₹{plat.salePrice.toLocaleString('en-IN')}
+                                      </span>
+                                      <a
+                                        href={plat.productUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-lg transition-colors cursor-pointer ${
+                                          isCheapest
+                                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
+                                            : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200'
+                                        }`}
+                                      >
+                                        <span>Buy</span>
+                                        <ExternalLink className="h-2.5 w-2.5" />
+                                      </a>
+                                    </div>
+
+                                    {plat.deliveryTime && (
+                                      <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 mt-1">
+                                        Delivery: {plat.deliveryTime}
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })}
+
+                              {cheapestPlat && (
+                                <a
+                                  href={cheapestPlat.productUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="mt-2 w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                  <span>Best Buy: ₹{pData.cheapestPrice.toLocaleString('en-IN')}</span>
+                                </a>
+                              )}
+                            </div>
+                          </td>
+                        );
+                      })}
+
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                        <td key={`empty-stores-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10" />
+                      ))}
+                    </tr>
+                  )}
+
+                  {/* AI Match Score Row */}
+                  {(!tableSearchQuery || 'ai wise score'.includes(tableSearchQuery.toLowerCase())) && (<tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
+                          <Sparkles className="h-4 w-4 text-amber-500"/>
+                          <span>AI WISE SCORE</span>
+                        </div>
+                      </td>
+                      {compareList.map((prod) => {
+                    const scoreDetails = getWiseScoreColorClass(prod.aiScore);
+                    const isWinner = prod.id === aiScoreWinnerId;
+                    return (<td key={prod.id} className={`p-4 text-xs font-bold border-r border-slate-100 dark:border-slate-800 last:border-r-0 ${isWinner ? 'bg-purple-50/40 dark:bg-purple-950/20' : ''} ${getWinnerColClass(prod.id)}`}>
+                            <div className="flex items-center gap-2">
+                              <div className="relative flex items-center justify-center">
+                                <div className={`h-11 w-11 rounded-full flex items-center justify-center text-base font-black border-2 ${scoreDetails.bg} ${scoreDetails.text} ${scoreDetails.border}`}>
+                                  {prod.aiScore}
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-[9px] text-slate-400 font-black block">INTELLIGENCE SCORE</span>
+                                <span className="text-[9px] text-[#475569] dark:text-slate-400 font-bold block">
+                                  {isWinner ? '🏆 Category Leader' : 'Smart matched index'}
+                                </span>
+                              </div>
+                            </div>
+                          </td>);
+                })}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (<td key={`empty-aiscore-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10"/>))}
+                    </tr>)}
+
+                  {/* Value For Money Rating */}
+                  {(!tableSearchQuery || 'value for money'.includes(tableSearchQuery.toLowerCase())) && (<tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
+                          <Award className="h-4 w-4 text-purple-500"/>
+                          <span>Value for Money</span>
+                        </div>
+                      </td>
+                      {compareList.map((prod) => {
+                    const val = getValueForMoney(prod);
+                    return (<td key={prod.id} className={`p-4 text-xs border-r border-slate-100 dark:border-slate-800 last:border-r-0 align-top ${getWinnerColClass(prod.id)}`}>
+                            <span className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-black border uppercase tracking-wider mb-1 ${val.color}`}>
+                              {val.label}
+                            </span>
+                            <p className="text-[10px] text-[#475569] dark:text-slate-400 font-bold mt-0.5">{val.desc}</p>
+                          </td>);
+                })}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (<td key={`empty-val-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10"/>))}
+                    </tr>)}
+
+                  {/* User Rating */}
+                  {(!tableSearchQuery || 'user satisfaction rating'.includes(tableSearchQuery.toLowerCase())) && (<tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1.5 text-[#111827] dark:text-white">
+                          <Star className="h-4 w-4 text-amber-500 fill-amber-500"/>
+                          <span>User Satisfaction</span>
+                        </div>
+                      </td>
+                      {compareList.map((prod) => {
+                    const isWinner = prod.id === ratingWinnerId;
+                    return (<td key={prod.id} className={`p-4 text-xs font-bold border-r border-slate-100 dark:border-slate-800 last:border-r-0 ${isWinner ? 'bg-amber-50/30 dark:bg-amber-950/20' : ''} ${getWinnerColClass(prod.id)}`}>
+                            <div className="flex items-center gap-1 text-[#111827] dark:text-white">
+                              <Star className="h-4 w-4 fill-amber-400 text-amber-400"/>
+                              <span className="font-black text-sm">{prod.rating}</span>
+                              <span className="text-[#475569] dark:text-slate-400 text-[11px] font-bold">/ 5.0</span>
+                              {isWinner && <span className="ml-1 text-[9px] font-black text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded">Highest</span>}
+                            </div>
+                          </td>);
+                })}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (<td key={`empty-usr-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10"/>))}
+                    </tr>)}
+
+                  {/* Processor */}
+                  {(!tableSearchQuery || 'processor cpu chipset silicon'.includes(tableSearchQuery.toLowerCase())) && (<tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-start gap-1.5 text-[#111827] dark:text-white">
+                            <Cpu className="h-4 w-4 text-blue-500 mt-0.5"/>
+                            <div>
+                              <span className="block font-black">Processor</span>
+                              <span className="text-[9px] font-medium text-slate-400 normal-case block">Silicon architecture & cores</span>
+                            </div>
+                          </div>
+                          {!isRowIdentical('Processor') && highlightDiffOnly && (<span className="text-[8px] font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded">Diff</span>)}
+                        </div>
+                      </td>
+                      {compareList.map((prod) => {
+                        const procText = prod.specs['Processor'] || prod.specs['Processor/Engine'] || '';
+                        const isFlagshipChip = /a1[6-9]|m[2-4]|snapdragon 8|tensor g|i[7-9]|ryzen [7-9]/i.test(procText);
+                        return (
+                          <td key={prod.id} className={`p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0 whitespace-normal leading-relaxed ${getWinnerColClass(prod.id)}`}>
+                            <div>{procText || <span className="text-slate-400 font-normal">N/A</span>}</div>
+                            {isFlagshipChip && (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded mt-1 border border-blue-200/50 dark:border-blue-800/50">
+                                ⚡ Flagship Silicon
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (<td key={`empty-proc-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10"/>))}
+                    </tr>)}
+
+                  {/* Display Quality */}
+                  {(!tableSearchQuery || 'display screen resolution refresh'.includes(tableSearchQuery.toLowerCase())) && (<tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-start gap-1.5 text-[#111827] dark:text-white">
+                            <Monitor className="h-4 w-4 text-indigo-500 mt-0.5"/>
+                            <div>
+                              <span className="block font-black">Display Quality</span>
+                              <span className="text-[9px] font-medium text-slate-400 normal-case block">Panel tech & refresh rate</span>
+                            </div>
+                          </div>
+                          {!isRowIdentical('Display') && highlightDiffOnly && (<span className="text-[8px] font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded">Diff</span>)}
+                        </div>
+                      </td>
+                      {compareList.map((prod) => {
+                        const dispText = prod.specs['Display'] || '';
+                        const isHighEndDisp = /120hz|144hz|165hz|oled|amoled|retina|liquid retina|4k/i.test(dispText);
+                        return (
+                          <td key={prod.id} className={`p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0 whitespace-normal leading-relaxed ${getWinnerColClass(prod.id)}`}>
+                            <div>{dispText || <span className="text-slate-400 font-normal">N/A</span>}</div>
+                            {isHighEndDisp && (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded mt-1 border border-indigo-200/50 dark:border-indigo-800/50">
+                                ✨ Ultra-Vivid Panel
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (<td key={`empty-disp-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10"/>))}
+                    </tr>)}
+
+                  {/* Memory & Storage */}
+                  {(!tableSearchQuery || 'storage ram memory'.includes(tableSearchQuery.toLowerCase())) && (<tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-start gap-1.5 text-[#111827] dark:text-white">
+                            <Zap className="h-4 w-4 text-emerald-500 mt-0.5"/>
+                            <div>
+                              <span className="block font-black">Storage / RAM</span>
+                              <span className="text-[9px] font-medium text-slate-400 normal-case block">Memory cache & storage space</span>
+                            </div>
+                          </div>
+                          {!isRowIdentical('Storage') && highlightDiffOnly && (<span className="text-[8px] font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded">Diff</span>)}
+                        </div>
+                      </td>
+                      {compareList.map((prod) => {
+                        const storText = prod.specs['Storage'] || prod.specs['Memory'] || prod.specs['Memory/Storage'] || '';
+                        const isHighCap = /512gb|1tb|2tb|16gb|32gb|64gb/i.test(storText);
+                        return (
+                          <td key={prod.id} className={`p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0 ${getWinnerColClass(prod.id)}`}>
+                            <div>{storText || <span className="text-slate-400 font-normal">N/A</span>}</div>
+                            {isHighCap && (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded mt-1 border border-emerald-200/50 dark:border-emerald-800/50">
+                                🚀 High Capacity
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (<td key={`empty-stor-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10"/>))}
+                    </tr>)}
+
+                  {/* Battery Life */}
+                  {(!tableSearchQuery || 'battery life endurance mah'.includes(tableSearchQuery.toLowerCase())) && (<tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-start gap-1.5 text-[#111827] dark:text-white">
+                            <Battery className="h-4 w-4 text-emerald-500 mt-0.5"/>
+                            <div>
+                              <span className="block font-black">Battery Endurance</span>
+                              <span className="text-[9px] font-medium text-slate-400 normal-case block">Cell capacity & stamina</span>
+                            </div>
+                          </div>
+                          {!isRowIdentical('Battery') && highlightDiffOnly && (<span className="text-[8px] font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded">Diff</span>)}
+                        </div>
+                      </td>
+                      {compareList.map((prod) => {
+                    const isWinner = prod.id === batteryWinnerId;
+                    return (<td key={prod.id} className={`p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0 whitespace-normal leading-relaxed ${isWinner ? 'bg-teal-50/30 dark:bg-teal-950/20' : ''} ${getWinnerColClass(prod.id)}`}>
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <span>{prod.specs['Battery'] || prod.specs['Battery Life'] || <span className="text-slate-400 font-normal">N/A</span>}</span>
+                              {isWinner && <span className="text-[9px] font-black text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-900/40 px-1.5 py-0.5 rounded">👑 Top Endurance</span>}
+                            </div>
+                          </td>);
+                })}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (<td key={`empty-batt-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10"/>))}
+                    </tr>)}
+
+                  {/* Camera Capabilities */}
+                  {(!tableSearchQuery || 'camera optics lens mp sensor'.includes(tableSearchQuery.toLowerCase())) && (<tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-start gap-1.5 text-[#111827] dark:text-white">
+                          <Camera className="h-4 w-4 text-rose-500 mt-0.5"/>
+                          <div>
+                            <span className="block font-black">Camera Specs</span>
+                            <span className="text-[9px] font-medium text-slate-400 normal-case block">Optics, sensor & megapixel</span>
+                          </div>
+                        </div>
+                      </td>
+                      {compareList.map((prod) => {
+                        const camText = prod.specs['Camera'] || '';
+                        const isProCam = /48mp|50mp|108mp|200mp|4k|8k|periscope|telephoto|ois/i.test(camText);
+                        return (
+                          <td key={prod.id} className={`p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0 whitespace-normal leading-relaxed ${getWinnerColClass(prod.id)}`}>
+                            <div>{camText || <span className="text-slate-400 font-bold">Standard Audio-Video Drivers</span>}</div>
+                            {isProCam && (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-black text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded mt-1 border border-rose-200/50 dark:border-rose-800/50">
+                                📸 Pro Optics
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (<td key={`empty-cam-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10"/>))}
+                    </tr>)}
+
+                  {/* Performance Metrics */}
+                  {(!tableSearchQuery || 'performance benchmark gaming velocity'.includes(tableSearchQuery.toLowerCase())) && (<tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-start gap-1.5 text-[#111827] dark:text-white">
+                          <Zap className="h-4 w-4 text-amber-500 animate-pulse mt-0.5"/>
+                          <div>
+                            <span className="block font-black">Performance Velocity</span>
+                            <span className="text-[9px] font-medium text-slate-400 normal-case block">Stress test & gaming capability</span>
+                          </div>
+                        </div>
+                      </td>
+                      {compareList.map((prod) => {
+                    const perf = getPerformanceMetrics(prod);
+                    const isWinner = prod.id === perfWinnerId;
+                    return (<td key={prod.id} className={`p-4 text-xs border-r border-slate-100 dark:border-slate-800 last:border-r-0 align-top ${isWinner ? 'bg-purple-50/30 dark:bg-purple-950/20' : ''} ${getWinnerColClass(prod.id)}`}>
+                            <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                              <span className="font-black text-[#111827] dark:text-white">{perf.label}</span>
+                              <span className="bg-purple-500/10 border border-purple-500/30 text-purple-600 dark:text-purple-400 font-black text-[10px] px-2 py-0.5 rounded-md">
+                                {perf.rating}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-[#475569] dark:text-slate-400 leading-relaxed font-semibold">{perf.details}</p>
+                          </td>);
+                })}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (<td key={`empty-perf-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10"/>))}
+                    </tr>)}
+
+                  {/* Warranty Information */}
+                  {(!tableSearchQuery || 'warranty guarantee support'.includes(tableSearchQuery.toLowerCase())) && (<tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-start gap-1.5 text-[#111827] dark:text-white">
+                          <Shield className="h-4 w-4 text-emerald-500 mt-0.5"/>
+                          <div>
+                            <span className="block font-black">Warranty Specs</span>
+                            <span className="text-[9px] font-medium text-slate-400 normal-case block">Domestic service & support</span>
+                          </div>
+                        </div>
+                      </td>
+                      {compareList.map((prod) => (<td key={prod.id} className={`p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0 ${getWinnerColClass(prod.id)}`}>
+                          {prod.specs['Warranty'] || <span className="text-[#475569] dark:text-slate-400 font-bold">1 Year Domestic Retail Support</span>}
+                        </td>))}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (<td key={`empty-warr-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10"/>))}
+                    </tr>)}
+
+                  {/* Technical Specifications - Remaining Keys if any */}
+                  {remainingSpecKeys
+                .filter(key => !tableSearchQuery || key.toLowerCase().includes(tableSearchQuery.toLowerCase()))
+                .map((key) => {
+                const isDiff = !isRowIdentical(key);
+                if (highlightDiffOnly && !isDiff)
+                    return null;
+                return (<tr key={key} className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                          <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-wider bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] capitalize">
+                            <div className="flex items-center justify-between">
+                              <span>{key}</span>
+                              {isDiff && highlightDiffOnly && (<span className="text-[8px] font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded">Diff</span>)}
+                            </div>
+                          </td>
+                          {compareList.map((prod) => (<td key={prod.id} className={`p-4 text-xs text-[#111827] dark:text-slate-100 font-extrabold border-r border-slate-100 dark:border-slate-800 last:border-r-0 ${getWinnerColClass(prod.id)}`}>
+                              {prod.specs[key] || <span className="text-slate-400 font-normal">Not Applicable</span>}
+                            </td>))}
+                          {Array.from({ length: emptySlotsCount }).map((_, idx) => (<td key={`empty-rem-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10"/>))}
+                        </tr>);
+            })}
+
+                  {/* Pros */}
+                  {(!tableSearchQuery || 'pros strengths advantages'.includes(tableSearchQuery.toLowerCase())) && (<tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1.5 text-emerald-500">
+                          <CheckCircle2 className="h-4 w-4"/>
+                          <span>Strengths (Pros)</span>
+                        </div>
+                      </td>
+                      {compareList.map((prod) => (<td key={prod.id} className={`p-4 text-xs text-[#475569] dark:text-slate-300 align-top pr-6 font-semibold border-r border-slate-100 dark:border-slate-800 last:border-r-0 ${getWinnerColClass(prod.id)}`}>
+                          <ul className="space-y-1.5">
+                            {prod.pros.slice(0, 4).map((p, idx) => (<li key={idx} className="flex items-start gap-1.5 leading-snug">
+                                <span className="text-emerald-500 font-black text-sm">•</span>
+                                <span>{p}</span>
+                              </li>))}
+                          </ul>
+                        </td>))}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (<td key={`empty-pro-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10"/>))}
+                    </tr>)}
+
+                  {/* Cons */}
+                  {(!tableSearchQuery || 'cons drawbacks weaknesses'.includes(tableSearchQuery.toLowerCase())) && (<tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1.5 text-rose-500">
+                          <Trash2 className="h-4 w-4"/>
+                          <span>Drawbacks (Cons)</span>
+                        </div>
+                      </td>
+                      {compareList.map((prod) => (<td key={prod.id} className={`p-4 text-xs text-[#475569] dark:text-slate-300 align-top pr-6 font-semibold border-r border-slate-100 dark:border-slate-800 last:border-r-0 ${getWinnerColClass(prod.id)}`}>
+                          <ul className="space-y-1.5">
+                            {prod.cons.slice(0, 4).map((c, idx) => (<li key={idx} className="flex items-start gap-1.5 leading-snug">
+                                <span className="text-rose-500 font-black text-sm">•</span>
+                                <span>{c}</span>
+                              </li>))}
+                          </ul>
+                        </td>))}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (<td key={`empty-con-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10"/>))}
+                    </tr>)}
+
+                  {/* AI Verdict */}
+                  {(!tableSearchQuery || 'ai recommendation verdict'.includes(tableSearchQuery.toLowerCase())) && (<tr className="hover:bg-slate-50/40 dark:hover:bg-slate-900/40">
+                      <td className="p-4 pl-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-white dark:bg-[#111827] sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
+                          <Sparkles className="h-4 w-4 text-amber-400"/>
+                          <span>AI Recommendation</span>
+                        </div>
+                      </td>
+                      {compareList.map((prod) => (<td key={prod.id} className={`p-4 text-xs text-[#475569] dark:text-slate-300 leading-relaxed italic pr-6 align-top font-medium border-r border-slate-100 dark:border-slate-800 last:border-r-0 ${getWinnerColClass(prod.id)}`}>
+                          "{prod.aiRecommendation || 'Excellent balanced model with outstanding benchmarks.'}"
+                        </td>))}
+                      {Array.from({ length: emptySlotsCount }).map((_, idx) => (<td key={`empty-ver-${idx}`} className="p-4 border-r border-slate-100 dark:border-slate-800 last:border-r-0 bg-slate-50/10 dark:bg-slate-900/10"/>))}
+                    </tr>)}
+
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>)}
+    </div>);
+}

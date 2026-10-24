@@ -1,0 +1,32 @@
+{
+  "customer@wisefind.com": [
+    {
+      "id": "default",
+      "name": "My Tech WiseList",
+      "description": "Primary tracking list",
+      "productIds": [
+        "phone-1",
+        "laptop-1"
+      ]
+    }
+  ],
+  "admin@wisefind.com": [
+    {
+      "id": "default",
+      "name": "Admin Benchmark WiseList",
+      "description": "Catalog benchmark items",
+      "productIds": [
+        "phone-2",
+        "headphone-1"
+      ]
+    }
+  ],
+  "kadivarkarim21@gmail.com": [
+    {
+      "id": "default",
+      "name": "My Tech Wishlist",
+      "description": "Primary tracking list",
+      "productIds": []
+    }
+  ]
+}

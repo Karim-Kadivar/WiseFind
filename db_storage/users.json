@@ -1,0 +1,72 @@
+[
+  {
+    "id": "115343252815340998938",
+    "name": "Karim Kadivar",
+    "email": "kadivarkarim21@gmail.com",
+    "picture": "https://lh3.googleusercontent.com/a/ACg8ocIWLoIXyCK1sPEUTtgAaHFepFzJwTLKLg2-9jRHCOFrFrmGxbPkNA=s96-c",
+    "role": "user",
+    "provider": "google",
+    "verified": true,
+    "updatedAt": "2026-10-24T16:30:30.660Z",
+    "createdAt": "2026-10-01T07:03:13.880Z"
+  },
+  {
+    "id": "user-1790916318898",
+    "name": "Student Test",
+    "email": "student@college.edu",
+    "passwordHash": "10f0600990dc1deec241a2a53a0303900157210afa082cb6988b671816575144",
+    "role": "user",
+    "bookmarks": [
+      "phone-1"
+    ],
+    "createdAt": "2026-10-02T04:45:18.898Z"
+  },
+  {
+    "name": "Ankit Sharma",
+    "email": "customer@wisefind.com",
+    "password": "Customer@123",
+    "role": "user",
+    "createdAt": "2026-10-23T18:09:21.458Z",
+    "updatedAt": "2026-10-23T18:09:21.458Z"
+  },
+  {
+    "name": "Dr. Vikramaditya Sengupta",
+    "email": "advisor@wisefind.com",
+    "password": "Advisor@123",
+    "role": "expert",
+    "advisorCategory": "Laptops & Workstations",
+    "advisorExperience": "10",
+    "createdAt": "2026-10-23T18:09:21.458Z",
+    "updatedAt": "2026-10-23T18:09:21.458Z"
+  },
+  {
+    "name": "Platform Admin",
+    "email": "admin@wisefind.com",
+    "password": "Admin@123",
+    "role": "admin",
+    "advisorCategory": null,
+    "advisorExperience": null,
+    "createdAt": "2026-10-23T18:09:21.458Z",
+    "updatedAt": "2026-10-23T18:09:21.458Z"
+  },
+  {
+    "name": "randomaadmi111",
+    "email": "randomaadmi111@gmail.com",
+    "password": "12345678",
+    "role": "user",
+    "createdAt": "2026-10-24T09:00:11.957Z",
+    "updatedAt": "2026-10-24T09:00:11.957Z"
+  },
+  {
+    "id": "usr-1792833543121",
+    "name": "Rohan Gupta",
+    "email": "rohan.gupta.test@gmail.com",
+    "password": "BrandNewSecurePassword@999",
+    "role": "user",
+    "advisorCategory": "",
+    "advisorExperience": "",
+    "emailVerified": true,
+    "createdAt": "2026-10-24T09:19:03.121Z",
+    "updatedAt": "2026-10-24T09:19:31.844Z"
+  }
+]

@@ -263,7 +263,7 @@ async function dispatchMail({ to, subject, text, html }) {
   // 1. Resend HTTPS API (Fastest and immune to ISP port 587/465 blocks)
   if (RESEND_API_KEY && RESEND_API_KEY.startsWith('re_')) {
     try {
-      const res = await fetch('https://api.resend.com/emails', {
+      let res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${RESEND_API_KEY.trim()}`,
@@ -277,17 +277,54 @@ async function dispatchMail({ to, subject, text, html }) {
           html
         })
       });
-      const data = await res.json();
+      let data = await res.json();
       if (res.ok) {
-        console.log(`[Email Service] SUCCESS: Dispatched via Resend HTTPS! ID: ${data.id}`);
+        console.log(`[Email Service] SUCCESS: Dispatched via Resend HTTPS to ${to}! Message ID: ${data.id}`);
         return {
           success: true,
           sentViaResend: true,
           messageId: data.id,
-          sender: 'WiseFind',
+          sender: 'WiseFind Platform',
           recipient: to
         };
       }
+
+      // If Resend free tier test restriction applies (only sends to verified account owner email)
+      if (res.status === 403 && data.message && data.message.includes('own email address')) {
+        const match = data.message.match(/\(([^)]+)\)/);
+        const ownerEmail = match ? match[1] : 'hello.wisefind@gmail.com';
+        console.log(`[Email Service] Resend testing restriction detected: Forwarding real email to verified account owner (${ownerEmail})...`);
+
+        const fallbackRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${RESEND_API_KEY.trim()}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'WiseFind Platform <onboarding@resend.dev>',
+            to: [ownerEmail],
+            subject: `[For ${to}] ${subject}`,
+            text: `(Dev Testing notice: Intended recipient in app was ${to})\n\n` + text,
+            html: `<div style="background:#1E293B;padding:12px 18px;border-radius:10px;margin-bottom:20px;color:#F59E0B;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;border:1px solid #F59E0B33;">
+              ⚡ <strong>Resend Development Notice:</strong> Intended recipient in WiseFind UI was <code>${to}</code>. Delivered to your verified account (<code>${ownerEmail}</code>).
+            </div>` + html
+          })
+        });
+        const fallbackData = await fallbackRes.json();
+        if (fallbackRes.ok) {
+          console.log(`[Email Service] SUCCESS: Real email delivered to ${ownerEmail}! Message ID: ${fallbackData.id}`);
+          return {
+            success: true,
+            sentViaResend: true,
+            messageId: fallbackData.id,
+            sender: 'WiseFind Platform',
+            recipient: ownerEmail,
+            forwardedFrom: to
+          };
+        }
+      }
+      console.warn(`[Email Service] Resend error response:`, data);
     } catch (err) {
       console.warn(`[Email Service] Resend HTTPS failed, falling back to SMTP:`, err.message);
     }

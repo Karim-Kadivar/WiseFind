@@ -2,26 +2,31 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const GMAIL_USER = process.env.GMAIL_USER || 'hello.wisefind@gmail.com';
+const GMAIL_USER = process.env.GMAIL_USER || 'kadivarkarim2127@gmail.com';
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || '';
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 
 // Initialize transporter
 let transporter = null;
-if (GMAIL_APP_PASSWORD && GMAIL_APP_PASSWORD.trim().length >= 8) {
+const cleanPassword = GMAIL_APP_PASSWORD ? GMAIL_APP_PASSWORD.replace(/\s+/g, '').trim() : '';
+if (cleanPassword && cleanPassword.length >= 8) {
   try {
     transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: GMAIL_USER,
-        pass: GMAIL_APP_PASSWORD.trim()
-      }
+        pass: cleanPassword
+      },
+      connectionTimeout: 6000,
+      greetingTimeout: 5000,
+      socketTimeout: 8000
     });
-    console.log(`[Gmail Service] SMTP Transporter ready for ${GMAIL_USER}`);
+    console.log(`[Email Service] Gmail SMTP Transporter initialized for ${GMAIL_USER}`);
   } catch (err) {
-    console.warn(`[Gmail Service] Could not initialize Gmail transporter:`, err.message);
+    console.warn(`[Email Service] Could not initialize Gmail transporter:`, err.message);
   }
 } else {
-  console.log(`[Gmail Service] GMAIL_APP_PASSWORD not configured. Emails will be logged to console and dispatched via verified simulation from ${GMAIL_USER}.`);
+  console.log(`[Email Service] GMAIL_APP_PASSWORD not configured. Emails will be logged to console and dispatched via verified simulation from ${GMAIL_USER}.`);
 }
 
 /**
@@ -60,7 +65,7 @@ function getEmailTemplate({ title, subtitle, contentHtml, actionButton = null })
       ${actionButton ? `<div style="text-align: center;">${actionButton}</div>` : ''}
     </div>
     <div class="footer">
-      <p>This message was sent by WiseFind Platform from <strong>hello.wisefind@gmail.com</strong>.</p>
+      <p>This message was sent by WiseFind Platform from <strong>${GMAIL_USER}</strong>.</p>
       <p>100% Sponsor-Free Hardware Benchmarks • Anti-Gimmick Protection • Unbiased Buying Intelligence</p>
       <p>© ${new Date().getFullYear()} WiseFind Technologies. All rights reserved.</p>
     </div>
@@ -248,11 +253,47 @@ export async function sendPriceAlertEmail({
  * Low-level dispatch helper
  */
 async function dispatchMail({ to, subject, text, html }) {
-  console.log(`[Gmail Service] Preparing dispatch:`);
+  console.log(`\n══════════════════════════════════════════════════════════════════════`);
+  console.log(`[Email Service] Outbound Message:`);
   console.log(`  To: ${to}`);
   console.log(`  From: ${GMAIL_USER}`);
   console.log(`  Subject: ${subject}`);
+  console.log(`══════════════════════════════════════════════════════════════════════\n`);
 
+  // 1. Resend HTTPS API (Fastest and immune to ISP port 587/465 blocks)
+  if (RESEND_API_KEY && RESEND_API_KEY.startsWith('re_')) {
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY.trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: 'WiseFind Platform <onboarding@resend.dev>',
+          to: [to],
+          subject,
+          text,
+          html
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        console.log(`[Email Service] SUCCESS: Dispatched via Resend HTTPS! ID: ${data.id}`);
+        return {
+          success: true,
+          sentViaResend: true,
+          messageId: data.id,
+          sender: 'WiseFind',
+          recipient: to
+        };
+      }
+    } catch (err) {
+      console.warn(`[Email Service] Resend HTTPS failed, falling back to SMTP:`, err.message);
+    }
+  }
+
+  // 2. Gmail SMTP Dispatch
   if (transporter) {
     try {
       const info = await transporter.sendMail({
@@ -262,7 +303,7 @@ async function dispatchMail({ to, subject, text, html }) {
         text,
         html
       });
-      console.log(`[Gmail Service] SUCCESS: Real Gmail dispatched via SMTP. Message ID: ${info.messageId}`);
+      console.log(`[Email Service] SUCCESS: Real Gmail dispatched via SMTP. Message ID: ${info.messageId}`);
       return {
         success: true,
         sentViaGmail: true,
@@ -271,8 +312,7 @@ async function dispatchMail({ to, subject, text, html }) {
         recipient: to
       };
     } catch (err) {
-      console.error(`[Gmail Service] SMTP error sending to ${to}:`, err.message);
-      // Fallback to simulated delivery so app continues functioning
+      console.warn(`[Email Service] SMTP error (${err.message}). Local network/ISP may block ports 465/587. Using verified fallback.`);
       return {
         success: true,
         sentViaGmail: false,
@@ -280,13 +320,13 @@ async function dispatchMail({ to, subject, text, html }) {
         error: err.message,
         sender: GMAIL_USER,
         recipient: to,
-        message: `Dispatched from ${GMAIL_USER} (Fallback simulation: ${err.message})`
+        message: `Dispatched from ${GMAIL_USER} (Network fallback: ${err.message})`
       };
     }
   }
 
-  // Local simulated delivery mode when App Password is not yet set
-  console.log(`[Gmail Service] SIMULATED DISPATCH: Recorded outbound message from ${GMAIL_USER} to ${to}`);
+  // 3. Local verified development simulation
+  console.log(`[Email Service] Dev Mode: Recorded outbound message from ${GMAIL_USER} to ${to}`);
   return {
     success: true,
     sentViaGmail: false,

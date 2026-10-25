@@ -406,13 +406,14 @@ async function startServer() {
                 role
             });
 
-            console.log(`[Auth] Outbound Account Activation code dispatched for ${normalizedEmail} from hello.wisefind@gmail.com`);
+            const senderEmail = process.env.GMAIL_USER || 'hello.wisefind@gmail.com';
+            console.log(`[Auth] Outbound Account Activation code dispatched for ${normalizedEmail} from ${senderEmail}`);
 
             res.json({
                 success: true,
                 email: normalizedEmail,
-                message: `Activation code sent to ${normalizedEmail} from hello.wisefind@gmail.com. Please check your inbox or spam folder.`,
-                sender: "hello.wisefind@gmail.com",
+                message: `Activation code sent to ${normalizedEmail} from ${senderEmail}. Please check your inbox or spam folder.`,
+                sender: senderEmail,
                 sentViaGmail: emailResult.sentViaGmail
             });
         } catch (err) {
@@ -502,9 +503,10 @@ async function startServer() {
                 role: pending.role
             });
 
+            const senderEmail = process.env.GMAIL_USER || 'hello.wisefind@gmail.com';
             res.json({
                 success: true,
-                message: `A fresh activation code has been sent to ${normalizedEmail} from hello.wisefind@gmail.com.`
+                message: `A fresh activation code has been sent to ${normalizedEmail} from ${senderEmail}.`
             });
         } catch (err) {
             res.status(500).json({ error: "Failed to resend activation code", message: err.message });
@@ -544,12 +546,13 @@ async function startServer() {
                 otp
             });
 
-            console.log(`[Auth] Outbound Password Reset code dispatched for ${normalizedEmail} from hello.wisefind@gmail.com`);
+            const senderEmail = process.env.GMAIL_USER || 'hello.wisefind@gmail.com';
+            console.log(`[Auth] Outbound Password Reset code dispatched for ${normalizedEmail} from ${senderEmail}`);
 
             res.json({
                 success: true,
-                message: `Verification code sent to ${normalizedEmail} from hello.wisefind@gmail.com. Check your inbox and spam folder.`,
-                sender: "hello.wisefind@gmail.com",
+                message: `Verification code sent to ${normalizedEmail} from ${senderEmail}. Check your inbox and spam folder.`,
+                sender: senderEmail,
                 sentViaGmail: emailResult.sentViaGmail
             });
         } catch (err) {

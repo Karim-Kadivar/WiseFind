@@ -2,26 +2,28 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const GMAIL_USER = process.env.GMAIL_USER || 'kadivarkarim2127@gmail.com';
+const GMAIL_USER = process.env.GMAIL_USER || 'hello.wisefind@gmail.com';
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || '';
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 
-// Initialize transporter
+// Initialize transporter with direct SSL port 465 for instant, uninterrupted delivery
 let transporter = null;
 const cleanPassword = GMAIL_APP_PASSWORD ? GMAIL_APP_PASSWORD.replace(/\s+/g, '').trim() : '';
 if (cleanPassword && cleanPassword.length >= 8) {
   try {
     transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: {
         user: GMAIL_USER,
         pass: cleanPassword
       },
-      connectionTimeout: 6000,
-      greetingTimeout: 5000,
-      socketTimeout: 8000
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000
     });
-    console.log(`[Email Service] Gmail SMTP Transporter initialized for ${GMAIL_USER}`);
+    console.log(`[Email Service] Direct Gmail SSL Transporter initialized for ${GMAIL_USER} on port 465`);
   } catch (err) {
     console.warn(`[Email Service] Could not initialize Gmail transporter:`, err.message);
   }
@@ -260,7 +262,30 @@ async function dispatchMail({ to, subject, text, html }) {
   console.log(`  Subject: ${subject}`);
   console.log(`══════════════════════════════════════════════════════════════════════\n`);
 
-  // 1. Resend HTTPS API (Fastest and immune to ISP port 587/465 blocks)
+  // 1. Direct Gmail SMTP via SSL Port 465 (Instant, directly from hello.wisefind@gmail.com to submitted recipient)
+  if (transporter) {
+    try {
+      const info = await transporter.sendMail({
+        from: `"WiseFind Platform" <${GMAIL_USER}>`,
+        to,
+        subject,
+        text,
+        html
+      });
+      console.log(`[Email Service] SUCCESS: Dispatched directly from ${GMAIL_USER} to ${to}! Message ID: ${info.messageId}`);
+      return {
+        success: true,
+        sentViaGmail: true,
+        messageId: info.messageId,
+        sender: GMAIL_USER,
+        recipient: to
+      };
+    } catch (err) {
+      console.warn(`[Email Service] Gmail SMTP dispatch failed (${err.message}). Trying secondary HTTPS...`);
+    }
+  }
+
+  // 2. Secondary: Resend HTTPS API (if configured)
   if (RESEND_API_KEY && RESEND_API_KEY.startsWith('re_')) {
     try {
       let res = await fetch('https://api.resend.com/emails', {
@@ -288,77 +313,8 @@ async function dispatchMail({ to, subject, text, html }) {
           recipient: to
         };
       }
-
-      // If Resend free tier test restriction applies (only sends to verified account owner email)
-      if (res.status === 403 && data.message && data.message.includes('own email address')) {
-        const match = data.message.match(/\(([^)]+)\)/);
-        const ownerEmail = match ? match[1] : 'hello.wisefind@gmail.com';
-        console.log(`[Email Service] Resend testing restriction detected: Forwarding real email to verified account owner (${ownerEmail})...`);
-
-        const fallbackRes = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${RESEND_API_KEY.trim()}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            from: 'WiseFind Platform <onboarding@resend.dev>',
-            to: [ownerEmail],
-            subject: `[For ${to}] ${subject}`,
-            text: `(Dev Testing notice: Intended recipient in app was ${to})\n\n` + text,
-            html: `<div style="background:#1E293B;padding:12px 18px;border-radius:10px;margin-bottom:20px;color:#F59E0B;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;border:1px solid #F59E0B33;">
-              ⚡ <strong>Resend Development Notice:</strong> Intended recipient in WiseFind UI was <code>${to}</code>. Delivered to your verified account (<code>${ownerEmail}</code>).
-            </div>` + html
-          })
-        });
-        const fallbackData = await fallbackRes.json();
-        if (fallbackRes.ok) {
-          console.log(`[Email Service] SUCCESS: Real email delivered to ${ownerEmail}! Message ID: ${fallbackData.id}`);
-          return {
-            success: true,
-            sentViaResend: true,
-            messageId: fallbackData.id,
-            sender: 'WiseFind Platform',
-            recipient: ownerEmail,
-            forwardedFrom: to
-          };
-        }
-      }
-      console.warn(`[Email Service] Resend error response:`, data);
     } catch (err) {
-      console.warn(`[Email Service] Resend HTTPS failed, falling back to SMTP:`, err.message);
-    }
-  }
-
-  // 2. Gmail SMTP Dispatch
-  if (transporter) {
-    try {
-      const info = await transporter.sendMail({
-        from: `"WiseFind Platform" <${GMAIL_USER}>`,
-        to,
-        subject,
-        text,
-        html
-      });
-      console.log(`[Email Service] SUCCESS: Real Gmail dispatched via SMTP. Message ID: ${info.messageId}`);
-      return {
-        success: true,
-        sentViaGmail: true,
-        messageId: info.messageId,
-        sender: GMAIL_USER,
-        recipient: to
-      };
-    } catch (err) {
-      console.warn(`[Email Service] SMTP error (${err.message}). Local network/ISP may block ports 465/587. Using verified fallback.`);
-      return {
-        success: true,
-        sentViaGmail: false,
-        fallback: true,
-        error: err.message,
-        sender: GMAIL_USER,
-        recipient: to,
-        message: `Dispatched from ${GMAIL_USER} (Network fallback: ${err.message})`
-      };
+      console.warn(`[Email Service] Secondary Resend failed:`, err.message);
     }
   }
 
